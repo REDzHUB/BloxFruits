@@ -125,11 +125,14 @@ local function BringNPC(Enemie, MultBring)
             EnePP1.CFrame = EnePP2.CFrame
             EnePP1.CanCollide = false
             EnePP1.Size = Vector3.new(50, 50, 50)
-            EnemieH.WalkSpeed = 0
-            EnemieH.JumpPower = 0
-            EnemieH:ChangeState(14)
-            if EnemieH:FindFirstChild("Animator") then
-              EnemieH.Animator:Destroy()
+            local EnemieH = Enemie:FindFirstChild("Humanoid")
+            if EnemieH then
+              EnemieH.WalkSpeed = 0
+              EnemieH.JumpPower = 0
+              EnemieH:ChangeState(14)
+              if EnemieH:FindFirstChild("Animator") then
+                EnemieH.Animator:Destroy()
+              end
             end
             if NPC:FindFirstChild("Head") and NPC.Head.CanCollide then
               NPC.Head.CanCollide = false
