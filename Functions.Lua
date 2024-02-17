@@ -33,12 +33,12 @@ local function IsAlive(Enemie)
 end
 local function VerifyNPC(EnemieName)
   for _,Enemie in pairs(Enemies:GetChildren()) do
-    if Enemie.Name == EnemieName and Module:IsAlive(Enemie) then
+    if Enemie.Name == EnemieName and IsAlive(Enemie) then
       return Enemie
     end
   end
   for _,Enemie in pairs(ReplicatedStorage:GetChildren()) do
-    if Enemie.Name == EnemieName and Module:IsAlive(Enemie) then
+    if Enemie.Name == EnemieName and IsAlive(Enemie) then
       return Enemie
     end
   end
@@ -46,13 +46,13 @@ end
 local function ActiveHaki()
   local VerifyHaki = Player.Character and Player.Character:FindFirstChild("HasBuso")
   if getgenv().AutoHaki and not VerifyHaki then
-    Module:FireRemote("Buso")
+    FireRemote("Buso")
   end
 end
 local function GetEnemies(EnemiesList)
   local Distance, Nearest = math.huge
   local function Verify(_,Enemie)
-    if table.find(EnemiesList, Enemie.Name) and Module:IsAlive(Enemie) then
+    if table.find(EnemiesList, Enemie.Name) and IsAlive(Enemie) then
       local EnemiePP = Enemie.PrimaryPart
       local PlayerPP = Player.Character and Player.Character.PrimaryPart
       
@@ -67,7 +67,7 @@ local function GetEnemies(EnemiesList)
   return Nearest
 end
 
-local Module = {
+return {
   FireRemote = FireRemote,
   ServerHop = ServerHop,
   IsAlive = IsAlive,
@@ -75,5 +75,3 @@ local Module = {
   ActiveHaki = ActiveHaki,
   GetEnemies = GetEnemies
 }
-
-return Module
