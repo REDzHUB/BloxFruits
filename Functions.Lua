@@ -9,13 +9,10 @@ local Player = Players.LocalPlayer
 local Remotes = ReplicatedStorage:WaitForChild("Remotes", 9e9)
 local CommF = Remotes:WaitForChild("CommF_", 9e9)
 
-local Module = {}
-
-function Module:FireRemote(...)
+local function FireRemote(...)
   return CommF:InvokeServer(...)
 end
-
-function Module:ServerHop()
+local function ServerHop()
   local Api = "https://games.roblox.com/v1/games/"
   local PlaceId = game.PlaceId
   local Servers = Api .. tostring(PlaceId) .."/servers/Public?sortOrder=Asc&limit=100"
@@ -31,12 +28,10 @@ function Module:ServerHop()
     Server = Servers.data[1] Next = Servers.nextPageCursor
   until Server TeleportService:TeleportToPlaceInstance(PlaceId, Server.id, Player)
 end
-
-function Module:IsAlive(Enemie)
+local function IsAlive(Enemie)
   return (Enemie and Enemie:FindFirstChild("Humanoid") and (Enemie.Humanoid.Health > 0))
 end
-
-function Module:VerifyNPC(EnemieName)
+local function VerifyNPC(EnemieName)
   for _,Enemie in pairs(Enemies:GetChildren()) do
     if Enemie.Name == EnemieName and Module:IsAlive(Enemie) then
       return Enemie
@@ -48,15 +43,13 @@ function Module:VerifyNPC(EnemieName)
     end
   end
 end
-
-function Module:ActiveHaki()
+local function ActiveHaki()
   local VerifyHaki = Player.Character and Player.Character:FindFirstChild("HasBuso")
   if getgenv().AutoHaki and not VerifyHaki then
     Module:FireRemote("Buso")
   end
 end
-
-function Module:GetEnemies(EnemiesList)
+local function GetEnemies(EnemiesList)
   local Distance, Nearest = math.huge
   local function Verify(_,Enemie)
     if table.find(EnemiesList, Enemie.Name) and Module:IsAlive(Enemie) then
@@ -64,8 +57,7 @@ function Module:GetEnemies(EnemiesList)
       local PlayerPP = Player.Character and Player.Character.PrimaryPart
       
       if EnemiePP and PlayerPP and (PlayerPP.Position - EnemiePP.Position).Magnitude <= Distance then
-        Distance = (PlayerPP.Position - EnemiePP.Position).Magnitude
-        Nearest = Enemie
+        Distance, Nearest = (PlayerPP.Position - EnemiePP.Position).Magnitude, Enemie
       end
     end
   end
@@ -74,5 +66,14 @@ function Module:GetEnemies(EnemiesList)
   table.foreach(ReplicatedStorage:GetChildren(), Verify)
   return Nearest
 end
+
+local Module = {
+  FireRemote = FireRemote,
+  ServerHop = ServerHop,
+  IsAlive = IsAlive,
+  VerifyNPC = VerifyNPC,
+  ActiveHaki = ActiveHaki,
+  GetEnemies = GetEnemies
+}
 
 return Module
