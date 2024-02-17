@@ -73,9 +73,12 @@ local function KillAura()
       local EnemiePP = Enemie.PrimaryPart
       
       if PlayerPP and EnemiePP and (EnemiePP.Position - PlayerPP.Position).Magnitude < 1500 then
-        EnemieH.Health = 0
         EnemiePP.Size = Vector3.new(70, 70, 70)
         EnemiePP.CanCollide = false
+        local EnemieH = Enemie:FindFirstChild("Humanoid")
+        if EnemieH then
+          EnemieH.Health = 0
+        end
         sethiddenproperty(Player, "SimulationRadius", math.huge)
       end
     else
