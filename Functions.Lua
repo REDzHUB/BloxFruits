@@ -66,6 +66,81 @@ local function GetEnemies(EnemiesList)
   table.foreach(ReplicatedStorage:GetChildren(), Verify)
   return Nearest
 end
+local function KillAura()
+  local function Kill(_,Enemie)
+    if IsAlive(Enemie) then
+      local PlayerPP = Player.Character and Player.Character.PrimaryPart
+      local EnemiePP = Enemie.PrimaryPart
+      
+      if PlayerPP and EnemiePP and (EnemiePP.Position - PlayerPP.Position).Magnitude < 1500 then
+        EnemieH.Health = 0
+        EnemiePP.Size = Vector3.new(70, 70, 70)
+        EnemiePP.CanCollide = false
+        sethiddenproperty(Player, "SimulationRadius", math.huge)
+      end
+    else
+      local EnemieHead = Enemie:FindFirstChild("Head")
+      if EnemieHead then
+        EnemieHead:Destroy()
+      end
+    end
+  end
+  
+  table.foreach(Enemies:GetChildren(), Kill)
+  table.foreach(ReplicatedStorage:GetChildren(), Kill)
+end
+local function BringNPC(Enemie, MultBring)
+  if not BringMobs or not BringMobsDistance then
+    local EnemiePP = Enemie.PrimaryPart
+    if EnemiePP then
+      EnemiePP.CFrame = EnePP2.CFrame
+      EnemiePP.CanCollide = false
+      EnemiePP.Size = Vector3.new(50, 50, 50)
+      local EnemieH = Enemie:FindFirstChild("Humanoid")
+      if EnemieH then
+        EnemieH.WalkSpeed = 0
+        EnemieH.JumpPower = 0
+        EnemieH:ChangeState(14)
+        if EnemieH:FindFirstChild("Animator") then
+          EnemieH.Animator:Destroy()
+        end
+      end
+      if NPC:FindFirstChild("Head") and NPC.Head.CanCollide then
+        NPC.Head.CanCollide = false
+      end
+      sethiddenproperty(Player, "SimulationRadius",  math.huge)
+    end
+    return
+  end
+  local function Bring(_,NPC)
+    if MultBring or NPC.Name == Enemie.Name then
+      if IsAlive(NPC) then
+        local EnePP1, EnePP2 = NPC.PrimaryPart, Enemie.PrimaryPart
+        
+        if EnePP1 and EnePP2 then
+          local Mag = (EnePP1.Position - EnePP2.Position).Magnitude
+          if Mag > 1 and Mag < BringMobsDistance then
+            EnePP1.CFrame = EnePP2.CFrame
+            EnePP1.CanCollide = false
+            EnePP1.Size = Vector3.new(50, 50, 50)
+            EnemieH.WalkSpeed = 0
+            EnemieH.JumpPower = 0
+            EnemieH:ChangeState(14)
+            if EnemieH:FindFirstChild("Animator") then
+              EnemieH.Animator:Destroy()
+            end
+            if NPC:FindFirstChild("Head") and NPC.Head.CanCollide then
+              NPC.Head.CanCollide = false
+            end
+            sethiddenproperty(Player, "SimulationRadius",  math.huge)
+          end
+        end
+      end
+    end
+  end
+  
+  table.foreach(Enemies:GetChildren(), Bring)
+end
 
 return {
   FireRemote = FireRemote,
@@ -73,5 +148,7 @@ return {
   IsAlive = IsAlive,
   VerifyNPC = VerifyNPC,
   ActiveHaki = ActiveHaki,
-  GetEnemies = GetEnemies
+  GetEnemies = GetEnemies,
+  KillAura = KillAura,
+  BringNPC = BringNPC
 }
