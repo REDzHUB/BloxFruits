@@ -96,7 +96,6 @@ local function BringNPC(Enemie, MultBring)
   if not BringMobs or not BringMobsDistance then
     local EnemiePP = Enemie.PrimaryPart
     if EnemiePP then
-      EnemiePP.CFrame = EnePP2.CFrame
       EnemiePP.CanCollide = false
       EnemiePP.Size = Vector3.new(50, 50, 50)
       local EnemieH = Enemie:FindFirstChild("Humanoid")
