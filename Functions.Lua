@@ -32,19 +32,21 @@ function Module:ServerHop()
   until Server TeleportService:TeleportToPlaceInstance(PlaceId, Server.id, Player)
 end
 
+function Module:IsAlive(Enemie)
+  return (Enemie and Enemie:FindFirstChild("Humanoid") and (Enemie.Humanoid.Health > 0))
+end
+
 function Module:VerifyNPC(EnemieName)
-  local function Verify(Enemie)
-    if Enemie.Name == EnemieName then
-      local EnemieH = Enemie:FindFirstChild("Humanoid")
-      
-      if EnemieH and EnemieH.Health > 0 then
-        return Enemie
-      end
+  for _,Enemie in pairs(Enemies:GetChildren()) do
+    if Enemie.Name == EnemieName and Module:IsAlive(Enemie) then
+      return Enemie
     end
   end
-  
-  for _,NPC in pairs(Enemies:GetChildren()) do Verify(NPC) end
-  for _,NPC in pairs(ReplicatedStorage:GetChildren()) do Verify(NPC) end
+  for _,Enemie in pairs(ReplicatedStorage:GetChildren()) do
+    if Enemie.Name == EnemieName and Module:IsAlive(Enemie) then
+      return Enemie
+    end
+  end
 end
 
 function Module:ActiveHaki()
@@ -57,17 +59,13 @@ end
 function Module:GetEnemies(EnemiesList)
   local Distance, Nearest = math.huge
   local function Verify(_,Enemie)
-    if table.find(EnemiesList, Enemie.Name) then
-      local EnemieH = Enemie:FindFirstChild("Humanoid")
+    if table.find(EnemiesList, Enemie.Name) and Module:IsAlive(Enemie) then
+      local EnemiePP = Enemie.PrimaryPart
+      local PlayerPP = Player.Character and Player.Character.PrimaryPart
       
-      if EnemieH and EnemieH.Health > 0 then
-        local EnemiePP = Enemie.PrimaryPart
-        local PlayerPP = Player.Character and Player.Character.PrimaryPart
-        
-        if EnemiePP and PlayerPP and (PlayerPP.Position - EnemiePP.Position).Magnitude <= Distance then
-          Distance = (PlayerPP.Position - EnemiePP.Position).Magnitude
-          Nearest = Enemie
-        end
+      if EnemiePP and PlayerPP and (PlayerPP.Position - EnemiePP.Position).Magnitude <= Distance then
+        Distance = (PlayerPP.Position - EnemiePP.Position).Magnitude
+        Nearest = Enemie
       end
     end
   end
