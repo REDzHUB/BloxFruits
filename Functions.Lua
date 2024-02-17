@@ -6,7 +6,14 @@ local Players = game:GetService("Players")
 local Enemies = workspace:WaitForChild("Enemies", 9e9)
 local Player = Players.LocalPlayer
 
+local Remotes = ReplicatedStorage:WaitForChild("Remotes", 9e9)
+local CommF = Remotes:WaitForChild("CommF_", 9e9)
+
 local Module = {}
+
+function Module:FireRemote(...)
+  return CommF:InvokeServer(...)
+end
 
 function Module:ServerHop()
   local Api = "https://games.roblox.com/v1/games/"
@@ -43,7 +50,7 @@ end
 function Module:ActiveHaki()
   local VerifyHaki = Player.Character and Player.Character:FindFirstChild("HasBuso")
   if getgenv().AutoHaki and not VerifyHaki then
-    FireRemote("Buso")
+    Module:FireRemote("Buso")
   end
 end
 
