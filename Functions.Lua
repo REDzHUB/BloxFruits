@@ -2,6 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local VirtualUser = game:GetService("VirtualUser")
+local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
 local Enemies = workspace:WaitForChild("Enemies", 9e9)
