@@ -155,13 +155,9 @@ end
 local function GetBladeHit()
   local CF = getupvalue(require(Player.PlayerScripts.CombatFramework), 2)
   local AC = CF.activeController
-  local Weapon = AC.blades[1]
+  local Weapon = AC.blades and AC.blades[1]
   
-  if not Weapon then return Weapon end
-  while Weapon.Parent and Weapon.Parent ~= Player.Character do
-    Weapon = Weapon.Parent
-  end
-  return Weapon
+  return (type(Weapon) == "string" and Weapon) or ("")
 end
 local function BladeHitAttack()
   if not getgenv().FastAttack then return end
