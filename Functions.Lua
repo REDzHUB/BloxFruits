@@ -52,8 +52,8 @@ local function ActiveHaki()
     FireRemote("Buso")
   end
 end
-local function GetEnemies(EnemiesList)
-  local Distance, Nearest = math.huge
+local function GetEnemies(EnemiesList, Distance)
+  local Distance, Nearest = (Distance or math.huge)
   local function Verify(_,Enemie)
     if table.find(EnemiesList, Enemie.Name) and IsAlive(Enemie) then
       local EnemiePP = Enemie.PrimaryPart
