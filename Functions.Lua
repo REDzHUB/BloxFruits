@@ -196,6 +196,13 @@ local function AttackDistance()
     CF.activeController.hitboxMagnitude = 60
   end)
 end
+local function PlayerClick()
+  VirtualUser:Button1Down(Vector2.new(1e5, 1e5))
+  if (tick() - Cowndown) >= AutoClickDelay then
+    task.spawn(BladeHitAttack)
+    Cowndown = tick()
+  end
+end
 local function FastAttackFunc()
   if not getgenv().FastAttack then return end
   if not getupvalue or not require then return end
@@ -230,11 +237,7 @@ local function requestClick()
     end)
   end
   if #EnemiesList > 0 then
-    VirtualUser:Button1Down(Vector2.new(1e5, 1e5))
-    if (tick() - Cowndown) >= AutoClickDelay then
-      task.spawn(BladeHitAttack)
-      Cowndown = tick()
-    end
+    PlayerClick()
   end
 end
 local function StopCameraShaker()
@@ -326,5 +329,6 @@ return {
   AttackDistance = AttackDistance,
   BladeHitAttack = BladeHitAttack,
   TweenBlock = TweenBlock(),
-  requestClick = requestClick
+  requestClick = requestClick,
+  PlayerClick = PlayerClick
 }
