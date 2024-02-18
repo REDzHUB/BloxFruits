@@ -329,5 +329,6 @@ return {
   FastAttackFunc = FastAttackFunc,
   AttackDistance = AttackDistance,
   BladeHitAttack = BladeHitAttack,
-  TweenBlock = TweenBlock()
+  TweenBlock = TweenBlock(),
+  requestClick = requestClick
 }
