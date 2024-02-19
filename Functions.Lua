@@ -285,7 +285,7 @@ local function TweenBlock()
           Block.CFrame = plrPP.CFrame
         end
         if Stand then
-          Stand.CFrame = CFrame.new(Block.Position + Vector3.new(0, -4, 0))
+          Stand.CFrame = CFrame.new(Block.Position + Vector3.new(0, -10, 0))
         end
       end
       
