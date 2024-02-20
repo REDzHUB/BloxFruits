@@ -124,7 +124,7 @@ local function BringNPC(Enemie, MultBring)
         
         if EnePP1 and EnePP2 then
           local Mag = (EnePP1.Position - EnePP2.Position).Magnitude
-          if Mag > 1 and Mag < BringMobsDistance then
+          if Mag < BringMobsDistance then
             EnePP1.CFrame = EnePP2.CFrame
             EnePP1.CanCollide = false
             EnePP1.Size = Vector3.new(50, 50, 50)
