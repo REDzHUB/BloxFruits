@@ -192,12 +192,10 @@ local function BladeHitAttack()
       local BladeHit = require(RigLib).getBladeHits(plrChar, {plrPP}, 60)
       
       if #BladeHit > 0 then
-        FireRigControllerEvent("hit", BladeHit, Val, "")
-        pcall(function()
-          local Weapon = GetBladeHit()
-          FireRigControllerEvent("unequipWeapon", tostring(Weapon))
-          FireRigControllerEvent("weaponChange", tostring(Weapon))
-        end)
+        task.spawn(FireRigControllerEvent"hit", BladeHit, Val, "")
+        local Weapon = GetBladeHit()
+        task.spawn(FireRigControllerEvent, "weaponChange", tostring(Weapon))
+        task.spawn(FireRigControllerEvent, "unequipWeapon", tostring(Weapon))
       end
     end
   end
@@ -211,11 +209,9 @@ local function PlayerClick()
 end
 local function FastAttackFunc()
   if not getgenv().FastAttack then return end
-  if not getupvalue or not require then return end
   local CF = getupvalue(require(Player.PlayerScripts.CombatFramework), 2)
-  if not CF or type(CF) ~= "table" then return end
-  local AC = CF.activeController
   pcall(function()
+    local AC = CF.activeController
     if AC.timeToNextAttack ~= 0 then AC.timeToNextAttack = 0 end
     if AC.timeToNextBlock ~= 0 then AC.timeToNextBlock = 0 end
     if AC.focusStart ~= 0 then AC.focusStart = 0 end
