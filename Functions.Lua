@@ -14,9 +14,10 @@ local CommF = Remotes:WaitForChild("CommF_", 9e9)
 local CombatFramework = ReplicatedStorage:WaitForChild("CombatFramework", 9e9)
 local RigLib = CombatFramework:WaitForChild("RigLib", 9e9)
 
-local OldHook
-OldHook = hookfunction(OldFunctionTeste or require(RigLib).getBladeHits, function(plrChar, Handle, Distance)
-  local BladeHit = OldHook(plrChar, Handle, getgenv().AttackDistance and 60 or Distance)
+local OldFunc = require(RigLib).getBladeHits
+
+require(RigLib).getBladeHits = function(plrChar, Handle, Distance)
+  local BladeHit = OldFunc(plrChar, Handle, getgenv().AttackDistance and 60 or Distance)
   local NewHits, Verify = {}, {}
   
   for _,EnemiePart in pairs(BladeHit) do
@@ -27,7 +28,7 @@ OldHook = hookfunction(OldFunctionTeste or require(RigLib).getBladeHits, functio
     end
   end
   return NewHits
-end)
+end
 
 local Cowndown = tick()
 local function FireRemote(...)
