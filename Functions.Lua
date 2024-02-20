@@ -11,6 +11,24 @@ local Player = Players.LocalPlayer
 local Remotes = ReplicatedStorage:WaitForChild("Remotes", 9e9)
 local CommF = Remotes:WaitForChild("CommF_", 9e9)
 
+local CombatFramework = ReplicatedStorage:WaitForChild("CombatFramework", 9e9)
+local RigLib = CombatFramework:WaitForChild("RigLib", 9e9)
+
+local OldHook
+OldHook = hookfunction(OldFunctionTeste or require(RigLib).getBladeHits, function(plrChar, Handle, Distance)
+  local BladeHit = OldHook(plrChar, Handle, getgenv().AttackDistance and 60 or Distance)
+  local NewHits, Verify = {}, {}
+  
+  for _,EnemiePart in pairs(BladeHit) do
+    local Enemie = EnemiePart.Parent
+    if not Verify[Enemie] and Enemie:FindFirstChild("Humanoid") then
+      table.insert(NewHits, Enemie.PrimaryPart)
+      Verify[Enemie] = true
+    end
+  end
+  return NewHits
+end)
+
 local Cowndown = tick()
 local function FireRemote(...)
   return CommF:InvokeServer(...)
@@ -124,7 +142,7 @@ local function BringNPC(Enemie, MultBring)
         
         if EnePP1 and EnePP2 then
           local Mag = (EnePP1.Position - EnePP2.Position).Magnitude
-          if Mag < BringMobsDistance then
+          if Mag > 1 and Mag < BringMobsDistance then
             EnePP1.CFrame = EnePP2.CFrame
             EnePP1.CanCollide = false
             EnePP1.Size = Vector3.new(50, 50, 50)
@@ -153,11 +171,16 @@ local function FireRigControllerEvent(...)
   ReplicatedStorage.RigControllerEvent:FireServer(...)
 end
 local function GetBladeHit()
-  local CF = getupvalue(require(Player.PlayerScripts.CombatFramework), 2)
-  local AC = CF.activeController
-  local Weapon = AC.blades and AC.blades[1]
-  
-  return (type(Weapon) == "string" and Weapon) or ("")
+  local CombatFrameworkLib = getupvalue(require(Player.PlayerScripts.CombatFramework), 2)
+  local AC = CmrFwLib.activeController
+  local weapon = AC.blades[1]
+  if not weapon then 
+    return weapon
+  end
+  while weapon.Parent ~= game.Players.LocalPlayer.Character do
+    weapon = weapon.Parent 
+  end
+  return weapon
 end
 local function BladeHitAttack()
   if not getgenv().FastAttack then return end
@@ -166,35 +189,18 @@ local function BladeHitAttack()
   
   if plrChar and plrPP then
     for Val = 1, 1 do
-      local BladeHit = require(ReplicatedStorage.CombatFramework.RigLib).getBladeHits(plrChar, {plrPP}, 60)
-      local NewHits, Verify = {}, {}
+      local BladeHit = require(RigLib).getBladeHits(plrChar, {plrPP}, 60)
       
-      for _,Part in pairs(BladeHit) do
-        local Enemie = Part.Parent
-        if not Verify[Enemie] then
-          if Enemie.PrimaryPart then
-            table.insert(NewHits, Enemie.PrimaryPart)
-            Verify[Enemie] = true
-          end
-        end
-      end
-      
-      BladeHit = NewHits
       if #BladeHit > 0 then
-        local Blade = tostring(GetBladeHit())
         FireRigControllerEvent("hit", BladeHit, Val, "")
-        FireRigControllerEvent("unequipWeapon", Blade)
-        FireRigControllerEvent("weaponChange", Blade)
+        pcall(function()
+          local Weapon = GetBladeHit()
+          FireRigControllerEvent("unequipWeapon", tostring(Weapon))
+          FireRigControllerEvent("weaponChange", tostring(Weapon))
+        end)
       end
     end
   end
-end
-local function AttackDistance()
-  if not getgenv().AttackDistance then return end 
-  local CF = getupvalue(require(Player.PlayerScripts.CombatFramework), 2)
-  pcall(function()
-    CF.activeController.hitboxMagnitude = 60
-  end)
 end
 local function PlayerClick()
   VirtualUser:Button1Down(Vector2.new(1e5, 1e5))
@@ -313,7 +319,6 @@ local function TweenBlock()
 end
 
 RunService.Heartbeat:Connect(FastAttackFunc)
-RunService.Heartbeat:Connect(AttackDistance)
 task.spawn(StopCameraShaker)
 
 return {
@@ -326,7 +331,6 @@ return {
   KillAura = KillAura,
   BringNPC = BringNPC,
   FastAttackFunc = FastAttackFunc,
-  AttackDistance = AttackDistance,
   BladeHitAttack = BladeHitAttack,
   TweenBlock = TweenBlock(),
   requestClick = requestClick,
