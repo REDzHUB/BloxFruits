@@ -194,9 +194,11 @@ local function BladeHitAttack()
       
       if #BladeHit > 0 then
         task.spawn(FireRigControllerEvent, "hit", BladeHit, Val, "")
-        local Weapon = GetBladeHit()
-        task.spawn(FireRigControllerEvent, "weaponChange", tostring(Weapon))
-        task.spawn(FireRigControllerEvent, "unequipWeapon", tostring(Weapon))
+        pcall(function()
+          local Weapon = GetBladeHit()
+          task.spawn(FireRigControllerEvent, "weaponChange", tostring(Weapon))
+          task.spawn(FireRigControllerEvent, "unequipWeapon", tostring(Weapon))
+        end)
       end
     end
   end
