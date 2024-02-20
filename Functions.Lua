@@ -192,7 +192,7 @@ local function BladeHitAttack()
       local BladeHit = require(RigLib).getBladeHits(plrChar, {plrPP}, 60)
       
       if #BladeHit > 0 then
-        task.spawn(FireRigControllerEvent"hit", BladeHit, Val, "")
+        task.spawn(FireRigControllerEvent, "hit", BladeHit, Val, "")
         local Weapon = GetBladeHit()
         task.spawn(FireRigControllerEvent, "weaponChange", tostring(Weapon))
         task.spawn(FireRigControllerEvent, "unequipWeapon", tostring(Weapon))
