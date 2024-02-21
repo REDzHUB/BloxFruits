@@ -13,6 +13,7 @@ local CommF = Remotes:WaitForChild("CommF_", 9e9)
 
 local CombatFramework = ReplicatedStorage:WaitForChild("CombatFramework", 9e9)
 local RigLib = CombatFramework:WaitForChild("RigLib", 9e9)
+local CombatFramework = Player.PlayerScripts.CombatFramework
 
 local OldFunc = require(RigLib).getBladeHits
 
@@ -29,6 +30,10 @@ require(RigLib).getBladeHits = function(plrChar, Handle, Distance)
   end
   return NewHits
 end
+
+local getBladeHits = require(RigLib).getBladeHits
+
+local CombatLib = getupvalue(require(Player.PlayerScripts.CombatFramework), 2)
 
 local Cowndown = tick()
 local function FireRemote(...)
@@ -172,36 +177,65 @@ local function FireRigControllerEvent(...)
   ReplicatedStorage.RigControllerEvent:FireServer(...)
 end
 local function GetBladeHit()
-  local CombatFrameworkLib = getupvalue(require(Player.PlayerScripts.CombatFramework), 2)
-  local AC = CmrFwLib.activeController
-  local weapon = AC.blades[1]
-  if not weapon then 
-    return weapon
+  local AC = CombatLib.activeController
+  local Weapon = AC.blades[1]
+  if not Weapon then
+    return
   end
-  while weapon.Parent ~= game.Players.LocalPlayer.Character do
-    weapon = weapon.Parent 
+  while Weapon.Parent ~= Player.Character do
+    Weapon = Weapon.Parent
   end
-  return weapon
+  return Weapon
 end
-local function BladeHitAttack()
+local function BladeHitAttack() -- Source?
   if not getgenv().FastAttack then return end
-  local plrChar = Player.Character
-  local plrPP = plrChar and plrChar.PrimaryPart
-  
-  if plrChar and plrPP then
-    for Val = 1, 1 do
-      local BladeHit = require(RigLib).getBladeHits(plrChar, {plrPP}, 60)
-      
+  pcall(function()
+    local AC = CombatLib.activeController
+    
+    local plrChar = Player.Character
+    local plrPP = plrChar and plrChar.PrimaryPart
+    
+    if plrChar and plrPP then
+      local BladeHit = getBladeHits(plrChar, {plrPP}, 60)
       if #BladeHit > 0 then
-        task.spawn(FireRigControllerEvent, "hit", BladeHit, Val, "")
-        pcall(function()
-          local Weapon = GetBladeHit()
-          task.spawn(FireRigControllerEvent, "weaponChange", tostring(Weapon))
-          task.spawn(FireRigControllerEvent, "unequipWeapon", tostring(Weapon))
-        end)
+        local Val1 = getupvalue(AC.attack, 5) -- A
+        local Val2 = getupvalue(AC.attack, 6) -- B
+        local Val3 = getupvalue(AC.attack, 4) -- C
+        local Val4 = getupvalue(AC.attack, 7) -- D
+        local Val5 = (Val1 * 798405 + Val3 * 727595) % Val2
+        local Val6 = Val3 * 798405
+        (function()
+          Val5 = (Val5 * Val2 + Val6) % 1099511627776
+          Val1 = math.floor(Val5 / Val2)
+          Val3 = Val5 - Val1 * Val2
+        end)()
+        Val4 = Val4 + 1
+        setupvalue(AC.attack, 5, Val1)
+        setupvalue(AC.attack, 6, Val2)
+        setupvalue(AC.attack, 4, Val3)
+        setupvalue(AC.attack, 7, Val4)
+        
+        local function Attack()
+          if Player.Character and Player.Character:FindFirstChildOfClass("Tool") then
+            local Blade = GetBladeHit()
+            if Blade then
+              FireRigControllerEvent("weaponChange", tostring(Blade))
+              Remotes.Validator:FireServer(math.floor(Val5 / 1099511627776 * 16777215), Val4)
+              FireRigControllerEvent:FireServer("hit", BladeHit, 1, "")
+            end
+          end
+        end
+        task.spawn(Attack)
       end
     end
-  end
+    AC.timeToNextAttack = 0
+    AC.attacking = false
+    AC.timeToNextBlock = 0
+    AC.increment = 4
+    AC.blocking = false
+    AC.hitboxMagnitude = 200
+    AC.humanoid.AutoRotate = true
+  end)
 end
 local function PlayerClick()
   VirtualUser:Button1Down(Vector2.new(1e5, 1e5))
@@ -209,20 +243,6 @@ local function PlayerClick()
     task.spawn(BladeHitAttack)
     Cowndown = tick()
   end
-end
-local function FastAttackFunc()
-  if not getgenv().FastAttack then return end
-  local CF = getupvalue(require(Player.PlayerScripts.CombatFramework), 2)
-  pcall(function()
-    local AC = CF.activeController
-    if AC.timeToNextAttack ~= 0 then AC.timeToNextAttack = 0 end
-    if AC.timeToNextBlock ~= 0 then AC.timeToNextBlock = 0 end
-    if AC.focusStart ~= 0 then AC.focusStart = 0 end
-    if AC.attacking ~= false then AC.attacking = false end
-    if AC.blocking ~= false then AC.blocking = false end
-    if AC.humanoid.AutoRotate ~= true then AC.humanoid.AutoRotate = true end
-    if AC.increment ~= 3 then AC.increment = 3 end
-  end)
 end
 local function requestClick()
   if not Player.Character or not Player.Character:FindFirstChildOfClass("Tool") then return end
@@ -317,10 +337,9 @@ local function TweenBlock()
   }
 end
 
-RunService.Heartbeat:Connect(FastAttackFunc)
 task.spawn(StopCameraShaker)
 
-return {
+return ({
   FireRemote = FireRemote,
   ServerHop = ServerHop,
   IsAlive = IsAlive,
@@ -334,4 +353,4 @@ return {
   TweenBlock = TweenBlock(),
   requestClick = requestClick,
   PlayerClick = PlayerClick
-}
+})
