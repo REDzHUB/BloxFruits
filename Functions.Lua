@@ -1,3 +1,11 @@
+local function WaitPart(first, ...)
+  local part = first
+  for _,NewPart in ({...}) do
+    part = part:WaitForChild(NewPart, 10)
+  end
+  return part
+end
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -5,15 +13,16 @@ local VirtualUser = game:GetService("VirtualUser")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
-local Enemies = workspace:WaitForChild("Enemies", 9e9)
+local Enemies = WaitPart(workspace, "Enemies")
 local Player = Players.LocalPlayer
 
-local Remotes = ReplicatedStorage:WaitForChild("Remotes", 9e9)
-local CommF = Remotes:WaitForChild("CommF_", 9e9)
+local Remotes = WaitPart(ReplicatedStorage, "Remotes")
+local CommF = WaitPart(Remotes, "CommF_")
 
-local CombatFramework = ReplicatedStorage:WaitForChild("CombatFramework", 9e9)
-local RigLib = CombatFramework:WaitForChild("RigLib", 9e9)
-local CombatFramework = Player.PlayerScripts.CombatFramework
+local CFWReplicated = WaitPart(ReplicatedStorage, "CombatFramework")
+local RigLib = WaitPart(CFWReplicated, "RigLib")
+
+local CombatFramework = WaitPart(Player, "PlayerScripts", "CombatFramework")
 
 local OldFunc = require(RigLib).getBladeHits
 
@@ -270,8 +279,7 @@ local function requestClick()
   end
 end
 local function StopCameraShaker()
-  local CameraModule = ReplicatedStorage:WaitForChild("Util", 9e9):WaitForChild("CameraShaker", 9e9)
-  local CameraShaker = require(CameraModule)
+  local CameraShaker = require(WaitPart(ReplicatedStorage, "Util", "CameraShaker"))
   CameraShaker:Stop()
 end
 local function TweenBlock()
@@ -341,8 +349,10 @@ local function TweenBlock()
   }
 end
 local function RemoveEffects()
-  local Particles = require(CombatFramework.Particle)
-  local RigLeg = require(ReplicatedStorage.CombatFramework.RigLib)
+  local Particles = require(WaitPart(CombatFramework, "Particle"))
+  local RigLeg = require(WaitPart(ReplicatedStorage, "CombatFramework", "RigLib"))
+  local Death = require(WaitPart(ReplicatedStorage, "Effect", "Container", "Death"))
+  hookfunction(Death, function()end)
   
   local shared = {}
   if not shared.orl then shared.orl = RigLeg.wrapAttackAnimationAsync end
@@ -408,5 +418,6 @@ return ({
   BladeHitAttack = BladeHitAttack,
   TweenBlock = TweenBlock(),
   requestClick = requestClick,
-  PlayerClick = PlayerClick
+  PlayerClick = PlayerClick,
+  WaitPart = WaitPart
 })
