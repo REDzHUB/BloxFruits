@@ -443,7 +443,6 @@ local function GetNear()
   end
 end
 
-task.spawn(ActiveAimbot)
 task.spawn(RemoveEffects)
 task.spawn(StopCameraShaker)
 RunService.Heartbeat:Connect(GetNear)
