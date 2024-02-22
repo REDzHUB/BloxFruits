@@ -217,11 +217,14 @@ local function BladeHitAttack() -- Source?
         
         local function Attack()
           if Player.Character and Player.Character:FindFirstChildOfClass("Tool") then
-            local Blade = GetBladeHit()
-            if Blade then
-              FireRigControllerEvent("weaponChange", tostring(Blade))
-              Remotes.Validator:FireServer(math.floor(Val5 / 1099511627776 * 16777215), Val4)
-              FireRigControllerEvent:FireServer("hit", BladeHit, 1, "")
+            if AC.blades and AC.blades[1] then
+              local Blade = GetBladeHit()
+              if Blade then
+                AC.animator.anims.basic[1]:Play(0.01, 0.01, 0.01)
+                FireRigControllerEvent("weaponChange", tostring(Blade))
+                Remotes.Validator:FireServer(math.floor(Val5 / 1099511627776 * 16777215), Val4)
+                FireRigControllerEvent("hit", BladeHit, 1, "")
+              end
             end
           end
         end
@@ -238,15 +241,16 @@ local function BladeHitAttack() -- Source?
   end)
 end
 local function PlayerClick()
-  VirtualUser:Button1Down(Vector2.new(1e5, 1e5))
-  if (tick() - Cowndown) >= AutoClickDelay then
-    task.spawn(BladeHitAttack)
+  local Delay = AutoClickDelay or 0.1
+  if (tick() - Cowndown) >= Delay then
     Cowndown = tick()
+    task.spawn(BladeHitAttack)
   end
 end
 local function requestClick()
-  if not Player.Character or not Player.Character:FindFirstChildOfClass("Tool") then return end
+  if not getgenv().AutoClick then return end
   if not getgenv().requestClick then return end
+  if not Player.Character or not Player.Character:FindFirstChildOfClass("Tool") then return end
   
   local EnemiesList = {}
   for _,Enemie in pairs(Enemies:GetChildren()) do
@@ -336,8 +340,60 @@ local function TweenBlock()
     Stand = Stand
   }
 end
+local function RemoveEffects()
+  local Particles = require(CombatFramework.Particle)
+  local RigLeg = require(ReplicatedStorage.CombatFramework.RigLib)
+  
+  local shared = {}
+  if not shared.orl then shared.orl = RigLeg.wrapAttackAnimationAsync end
+  if not shared.cpc then shared.cpc = Particles.play end
+  
+  RigLeg.wrapAttackAnimationAsync = function(Val1, Val2, Val3, Val4, func)
+    local Hits = RigLeg.getBladeHits(Val2, Val3, Val4)
+    if Hits then
+      Particles.play = function()end
+      Val1:Play(0.01, 0.01, 0.01)
+      func(Hits)
+      Particles.play = shared.cpc
+      task.wait(Val1.length * 0.5)
+      Val1:Stop()
+    else
+      Val1:Play()
+    end
+  end
+end
+local function GetNear()
+  local Dist, PlayerNear, PlayerPos = math.huge
+  for _,Player1 in pairs(Players:GetPlayers()) do
+    if Player1 ~= Player then
+      local plrPP1 = Player1.Character and Player1.Character.PrimaryPart
+      local plrPP2 = Player.Character and Player.Character.PrimaryPart
+      
+      if plrPP1 and plrPP2 and (plrPP1.Position - plrPP2.Position).Magnitude <= Dist then
+        PlayerPos, PlayerNear, Dist = plrPP1.Position, Player1, (plrPP1.Position - plrPP2.Position).Magnitude
+      end
+    end
+  end
+  if PlayerNear then
+    getgenv().NearestPlayer = {
+      Player = PlayerNear,
+      Character = PlayerNear.Character,
+      RootPart = (PlayerNear.Character and PlayerNear.Character.PrimaryPart or PlayerNear.Character)
+    }
+  else
+    getgenv().NearestPlayer = false
+  end
+  if PlayerPos then
+    getgenv().AimbotPlayerPos = PlayerPos
+  else
+    getgenv().AimbotPlayerPos = false
+  end
+end
 
+task.spawn(RemoveEffects)
 task.spawn(StopCameraShaker)
+RunService.Heartbeat:Connect(GetNear)
+RunService.Heartbeat:Connect(requestClick)
 
 return ({
   FireRemote = FireRemote,
