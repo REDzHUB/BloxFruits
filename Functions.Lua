@@ -372,6 +372,49 @@ local function RemoveEffects()
     end
   end
 end
+local function ActiveAimbot()
+  local function AimBotPart(part)
+    getgenv().AimbotPos = part.Position
+  end
+  
+  local OldHook1, OldHook2
+  OldHook1 = hookmetamethod(game, "__namecall", function(self, Tap, Vector, ...)
+    if getnamecallmethod():lower() == "invokeserver" then
+      if type(Tap) == "string" and Tap == "TAP" and typeof(Vector) == "Vector3" then
+        if getgenv().AimbotTap then
+          if getgenv().AimbotPlayerPos then
+            return OldHook1(self, "TAP", getgenv().AimbotPlayerPos)
+          end
+        end
+      end
+    end
+    return OldHook1(self, Tap, Vector, ...)
+  end)
+  OldHook2 = hookmetamethod(game, "__namecall", function(self, Vector, ...)
+    if tostring(self) == "RemoteEvent" and getnamecallmethod():lower() == "fireserver" then
+      if typeof(Vector) == "Vector3" then
+        if getgenv().AimbotPlayer then
+          if getgenv().AimbotPlayerPos then
+            return OldHook2(self, getgenv().AimbotPlayerPos, ...)
+          end
+        elseif getgenv().AimbotPos then
+          if getgenv().AutoFarmSea or getgenv().AutoWoodPlanks or getgenv().Sea2_AutoFarmSea then
+            if getgenv().SeaAimBotSkill then
+              return OldHook2(self, getgenv().AimbotPos, ...)
+            end
+          elseif getgenv().AutoFarmMastery then
+            if getgenv().AimBotSkill then
+              return OldHook2(self, getgenv().AimbotPos, ...)
+            end
+          end
+        end
+      end
+    end
+    return OldHook2(self, Vector, ...)
+  end)
+  
+  return AimBotPart
+end
 local function GetNear()
   local Dist, PlayerNear, PlayerPos = math.huge
   for _,Player1 in pairs(Players:GetPlayers()) do
@@ -400,6 +443,7 @@ local function GetNear()
   end
 end
 
+task.spawn(ActiveAimbot)
 task.spawn(RemoveEffects)
 task.spawn(StopCameraShaker)
 RunService.Heartbeat:Connect(GetNear)
@@ -419,5 +463,6 @@ return ({
   TweenBlock = TweenBlock(),
   requestClick = requestClick,
   PlayerClick = PlayerClick,
-  WaitPart = WaitPart
+  WaitPart = WaitPart,
+  AimBotPart = ActiveAimbot()
 })
