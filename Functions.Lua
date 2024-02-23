@@ -441,7 +441,7 @@ local function GetNear()
 end
 local function Bypass()
   local OldHook
-  OldHook = hookmetamethod(game.Players.LocalPlayer, "__newindex", function(self, Index, Value)
+  OldHook = hookmetamethod(Player, "__newindex", function(self, Index, Value)
     if tostring(self) == "Humanoid" and Index == "WalkSpeed" then
       return OldHook(self, Index, WalkSpeedBypass or Value)
     end
