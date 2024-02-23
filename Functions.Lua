@@ -439,7 +439,17 @@ local function GetNear()
     getgenv().AimbotPlayerPos = false
   end
 end
+local function Bypass()
+  local OldHook
+  OldHook = hookmetamethod(game.Players.LocalPlayer, "__newindex", function(self, Index, Value)
+    if tostring(self) == "Humanoid" and Index == "WalkSpeed" then
+      return OldHook(self, Index, WalkSpeedBypass or Value)
+    end
+    return OldHook(self, Index, Value)
+  end)
+end
 
+task.spawn(Bypass)
 task.spawn(RemoveEffects)
 task.spawn(StopCameraShaker)
 RunService.Heartbeat:Connect(GetNear)
