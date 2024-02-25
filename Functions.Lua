@@ -1,3 +1,5 @@
+repeat task.wait()until game:IsLoaded()
+
 local function WaitPart(first, ...)
   local part = first
   for _,NewPart in ({...}) do
@@ -280,7 +282,7 @@ end
 local function TweenBlock()
   local Block = Instance.new("Part", workspace)
   Block.Size = Vector3.new(1, 1, 1)
-  Block.Name = "realblockstand"
+  Block.Name = tostring(game.UserId) .. "_Block"
   Block.Anchored = true
   Block.CanCollide = false
   Block.CanTouch = false
@@ -461,9 +463,9 @@ return ({
   BringNPC = BringNPC,
   FastAttackFunc = FastAttackFunc,
   BladeHitAttack = BladeHitAttack,
-  TweenBlock = TweenBlock(),
   requestClick = requestClick,
   PlayerClick = PlayerClick,
   WaitPart = WaitPart,
+  TweenBlock = TweenBlock(),
   AimBotPart = ActiveAimbot()
 })
