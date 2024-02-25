@@ -117,11 +117,6 @@ local function KillAura()
         end
         sethiddenproperty(Player, "SimulationRadius", math.huge)
       end
-    else
-      local EnemieHead = Enemie:FindFirstChild("Head")
-      if EnemieHead then
-        EnemieHead:Destroy()
-      end
     end
   end
   
@@ -133,7 +128,7 @@ local function BringNPC(Enemie, MultBring)
     local EnemiePP = Enemie.PrimaryPart
     if EnemiePP then
       EnemiePP.CanCollide = false
-      EnemiePP.Size = Vector3.new(50, 50, 50)
+      EnemiePP.Size = Vector3.new(75, 75, 75)
       local EnemieH = Enemie:FindFirstChild("Humanoid")
       if EnemieH then
         EnemieH.WalkSpeed = 0
