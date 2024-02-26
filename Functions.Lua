@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local VirtualUser = game:GetService("VirtualUser")
+local LogService = game:GetService("LogService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
@@ -348,8 +349,8 @@ end
 local function RemoveEffects()
   local Particles = require(WaitPart(CombatFramework, "Particle"))
   local RigLeg = require(WaitPart(ReplicatedStorage, "CombatFramework", "RigLib"))
-  local Death = require(WaitPart(ReplicatedStorage, "Effect", "Container", "Death"))
-  hookfunction(Death, function()end)
+  
+  require(WaitPart(ReplicatedStorage, "Effect", "Container", "Death")).Death = function()return end
   
   local shared = {}
   if not shared.orl then shared.orl = RigLeg.wrapAttackAnimationAsync end
@@ -366,6 +367,13 @@ local function RemoveEffects()
       Val1:Stop()
     else
       Val1:Play()
+    end
+  end
+end
+local function DisableConsole()
+  for _,connection in (getconnections(LogService).MessageOut) do
+    if connection then
+      connection:Disconnect()
     end
   end
 end
@@ -448,6 +456,7 @@ end
 
 task.spawn(Bypass)
 task.spawn(RemoveEffects)
+task.spawn(DisableConsole)
 task.spawn(StopCameraShaker)
 RunService.Heartbeat:Connect(GetNear)
 RunService.Heartbeat:Connect(requestClick)
