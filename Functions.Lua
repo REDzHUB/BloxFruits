@@ -371,7 +371,7 @@ local function RemoveEffects()
   end
 end
 local function DisableConsole()
-  for _,connection in pairs(getconnections(LogService).MessageOut) do
+  for _,connection in pairs(getconnections(LogService.MessageOut)) do
     if connection then
       connection:Disconnect()
     end
