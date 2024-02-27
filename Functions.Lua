@@ -349,8 +349,8 @@ end
 local function RemoveEffects()
   local Particles = require(WaitPart(CombatFramework, "Particle"))
   local RigLeg = require(WaitPart(ReplicatedStorage, "CombatFramework", "RigLib"))
-  
-  require(WaitPart(ReplicatedStorage, "Effect", "Container", "Death")).Death = function()return end
+  local DeathM = require(WaitPart(ReplicatedStorage, "Effect", "Container", "Death"))
+  hookfunction(DeathM, function()end)
   
   local shared = {}
   if not shared.orl then shared.orl = RigLeg.wrapAttackAnimationAsync end
@@ -371,7 +371,7 @@ local function RemoveEffects()
   end
 end
 local function DisableConsole()
-  for _,connection in (getconnections(LogService).MessageOut) do
+  for _,connection in pairs(getconnections(LogService).MessageOut) do
     if connection then
       connection:Disconnect()
     end
