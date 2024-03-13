@@ -443,6 +443,11 @@ local function FarmCheck()
   local function VerifyRaidPirate()
     return AutoPiratesSea and (tick() - PirateTime) <= 10
   end
+  
+  return ({
+    VerifyFactory = VerifyFactory,
+    VerifyRaidPirate = VerifyRaidPirate
+  })
 end
 local function GetNear()
   local Dist, PlayerNear, PlayerPos = math.huge
