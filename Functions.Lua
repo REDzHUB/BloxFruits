@@ -30,7 +30,7 @@ local CombatFramework = WaitPart(Player, "PlayerScripts", "CombatFramework")
 local OldFunc = require(RigLib).getBladeHits
 
 require(RigLib).getBladeHits = function(plrChar, Handle, Distance)
-  local BladeHit = OldFunc(plrChar, Handle, getgenv().AttackDistance and 60 or Distance)
+  local BladeHit = OldFunc(plrChar, Handle, AttackDistance and 60 or Distance)
   local NewHits, Verify = {}, {}
   
   for _,EnemiePart in pairs(BladeHit) do
@@ -84,7 +84,7 @@ local function VerifyNPC(EnemieName)
 end
 local function ActiveHaki()
   local VerifyHaki = Player.Character and Player.Character:FindFirstChild("HasBuso")
-  if getgenv().AutoHaki and not VerifyHaki then
+  if AutoHaki and not VerifyHaki then
     FireRemote("Buso")
   end
 end
@@ -195,7 +195,7 @@ local function GetBladeHit()
   return Weapon
 end
 local function BladeHitAttack() -- Source?
-  if not getgenv().FastAttack then return end
+  if not FastAttack then return end
   pcall(function()
     local AC = CombatLib.activeController
     
@@ -255,8 +255,8 @@ local function PlayerClick()
   end
 end
 local function requestClick()
-  if not getgenv().AutoClick then return end
-  if not getgenv().requestClick then return end
+  if not AutoClick then return end
+  if not requestClick then return end
   if not Player.Character or not Player.Character:FindFirstChildOfClass("Tool") then return end
   
   local EnemiesList = {}
@@ -379,7 +379,7 @@ local function DisableConsole()
 end
 local function ActiveAimbot()
   local function AimBotPart(part)
-    getgenv().AimbotPos = part.Position
+    AimbotPos = part.Position
   end
   
   local OldHook
@@ -387,27 +387,27 @@ local function ActiveAimbot()
     local Method = getnamecallmethod():lower()
     if tostring(self) == "RemoteEvent" and Method == "fireserver" then
       if typeof(Val1) == "Vector3" then
-        if getgenv().AimbotPlayer then
-          if getgenv().AimbotPlayerPos then
-            return OldHook(self, getgenv().AimbotPlayerPos, ...)
+        if AimbotPlayer then
+          if AimbotPlayerPos then
+            return OldHook(self, AimbotPlayerPos, ...)
           end
-        elseif getgenv().AimbotPos then
-          if getgenv().AutoFarmSea or getgenv().AutoWoodPlanks or getgenv().Sea2_AutoFarmSea then
-            if getgenv().SeaAimBotSkill then
-              return OldHook(self, getgenv().AimbotPos, ...)
+        elseif AimbotPos then
+          if AutoFarmSea or AutoWoodPlanks or Sea2_AutoFarmSea then
+            if SeaAimBotSkill then
+              return OldHook(self, AimbotPos, ...)
             end
-          elseif getgenv().AutoFarmMastery then
-            if getgenv().AimBotSkill then
-              return OldHook(self, getgenv().AimbotPos, ...)
+          elseif AutoFarmMastery then
+            if AimBotSkill then
+              return OldHook(self, AimbotPos, ...)
             end
           end
         end
       end
     elseif Method == "invokeserver" then
       if type(Val1) == "string" and Val1 == "TAP" and typeof(Val2) == "Vector3" then
-        if getgenv().AimbotTap then
-          if getgenv().AimbotPlayerPos then
-            return OldHook(self, "TAP", getgenv().AimbotPlayerPos)
+        if AimbotTap then
+          if AimbotPlayerPos then
+            return OldHook(self, "TAP", AimbotPlayerPos)
           end
         end
       end
@@ -416,6 +416,33 @@ local function ActiveAimbot()
   end)
   
   return AimBotPart
+end
+local function FarmCheck()
+  local PirateTime = tick()
+  task.spawn(function()
+    local function VerifyPos(_,Enemie)
+      if Enemie.Name ~= "rip_indra True Form" then
+        local EnemieRP = Enemie and Enemie:FindFirstChild("HumanoidRootPart")
+        
+        if EnemieRP and (EnemieRP.Position - Vector3.new(-5556, 314, -2988)).Magnitude < 700 then
+          PirateTime = tick()
+        end
+      end
+    end
+    
+    while task.wait() do
+      table.foreach(Enemies:GetChildren(), VerifyPos)
+      table.foreach(ReplicatedStorage:GetChildren(), VerifyPos)
+    end
+  end)
+  
+  local function VerifyFactory()
+    return AutoFactory and VerifyNPC("Core")
+  end
+  
+  local function VerifyRaidPirate()
+    return AutoPiratesSea and (tick() - PirateTime) <= 10
+  end
 end
 local function GetNear()
   local Dist, PlayerNear, PlayerPos = math.huge
@@ -430,18 +457,18 @@ local function GetNear()
     end
   end
   if PlayerNear then
-    getgenv().NearestPlayer = {
+    NearestPlayer = {
       Player = PlayerNear,
       Character = PlayerNear.Character,
       RootPart = (PlayerNear.Character and PlayerNear.Character.PrimaryPart or PlayerNear.Character)
     }
   else
-    getgenv().NearestPlayer = false
+    NearestPlayer = false
   end
   if PlayerPos then
-    getgenv().AimbotPlayerPos = PlayerPos
+    AimbotPlayerPos = PlayerPos
   else
-    getgenv().AimbotPlayerPos = false
+    AimbotPlayerPos = false
   end
 end
 local function Bypass()
@@ -476,5 +503,6 @@ return ({
   PlayerClick = PlayerClick,
   WaitPart = WaitPart,
   TweenBlock = TweenBlock(),
-  AimBotPart = ActiveAimbot()
+  AimBotPart = ActiveAimbot(),
+  FarmCheck = FarmCheck()
 })
