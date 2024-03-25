@@ -150,7 +150,7 @@ local function BringNPC(Enemie, MultBring)
   end
   local function Bring(_,NPC)
     if MultBring or NPC.Name == Enemie.Name then
-      if IsAlive(NPC) then
+      if IsAlive(NPC) and NPC ~= Enemie then
         local EnePP1, EnePP2 = NPC.PrimaryPart, Enemie.PrimaryPart
         
         if EnePP1 and EnePP2 then
@@ -158,7 +158,7 @@ local function BringNPC(Enemie, MultBring)
           if Mag > 1 and Mag < BringMobsDistance then
             EnePP1.CFrame = EnePP2.CFrame
             EnePP1.CanCollide = false
-            EnePP1.Size = Vector3.new(50, 50, 50)
+            EnePP1.Size = Vector3.new(60, 60, 60)
             local EnemieH = Enemie:FindFirstChild("Humanoid")
             if EnemieH then
               EnemieH.WalkSpeed = 0
