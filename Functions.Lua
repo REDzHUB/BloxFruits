@@ -101,7 +101,7 @@ local function GetEnemies(EnemiesList, Distance)
     end
   end
   
-  table.foreach(Enemies:GetChildren(), Verify)task.wait()
+  table.foreach(Enemies:GetChildren(), Verify)
   table.foreach(ReplicatedStorage:GetChildren(), Verify)
   return Nearest
 end
@@ -131,7 +131,7 @@ local function BringNPC(Enemie, MultBring)
     local EnemiePP = Enemie.PrimaryPart
     if EnemiePP then
       EnemiePP.CanCollide = false
-      EnemiePP.Size = Vector3.new(75, 75, 75)
+      EnemiePP.Size = Vector3.new(50, 50, 50)
       local EnemieH = Enemie:FindFirstChild("Humanoid")
       if EnemieH then
         EnemieH.WalkSpeed = 0
@@ -195,7 +195,11 @@ local function GetBladeHit()
   return Weapon
 end
 local function BladeHitAttack() -- Source?
-  if not FastAttack then return end
+  if not FastAttack then
+    VirtualUser:CaptureController()
+    VirtualUser:Button1Down(Vector2.new(1e4, 1e4))
+    return
+  end
   pcall(function()
     local AC = CombatLib.activeController
     
@@ -257,22 +261,25 @@ end
 local function requestClick()
   if not AutoClick then return end
   if not requestClick then return end
-  if not Player.Character or not Player.Character:FindFirstChildOfClass("Tool") then return end
+  if not IsAlive(Player.Character) or not Player.Character:FindFirstChildOfClass("Tool") then return end
   
-  local EnemiesList = {}
+  local Kjshsbsi
   for _,Enemie in pairs(Enemies:GetChildren()) do
+    if Kjshsbsi then
+      break
+    end
     pcall(function()
       local EnemieH = Enemie:FindFirstChild("Humanoid")
       if EnemieH and EnemieH.Health > 0 then
         local plrPP = Player.Character and Player.Character.PrimaryPart
         local EnemiePP = Enemie.PrimaryPart
         if plrPP and EnemiePP and (EnemiePP.Position - plrPP.Position).Magnitude < 60 then
-          table.insert(EnemiesList, Enemie)
+          Kjshsbsi = true
         end
       end
     end)
   end
-  if #EnemiesList > 0 then
+  if Kjshsbsi then
     PlayerClick()
   end
 end
