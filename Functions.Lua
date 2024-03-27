@@ -189,8 +189,10 @@ local function GetBladeHit()
   if not Weapon then
     return
   end
-  while Weapon.Parent ~= Player.Character do
-    Weapon = Weapon.Parent
+  if Weapon then
+    while Weapon.Parent ~= Player.Character do
+      Weapon = Weapon.Parent
+    end
   end
   return Weapon
 end
@@ -296,12 +298,10 @@ local function TweenBlock()
   Block.CanTouch = false
   Block.Transparency = 1
   
-  local Stand = Instance.new("Part", Block)
-  Stand.Size = Vector3.new(25, 0.5, 25)
-  Stand.Transparency = 1
-  Stand.Anchored = true
-  Stand.CanCollide = false
-  Stand.CanTouch = false
+  local Velocity = Instance.new("BodyVelocity")
+  Velocity.Name = "BV_Player"
+  Velocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+  Velocity.Velocity = Vector3.new()
   
   local BlockFind = workspace:FindFirstChild(Block.Name)
   if BlockFind and BlockFind ~= Block then
@@ -310,6 +310,9 @@ local function TweenBlock()
   
   local function VerifyTP()
     if not Block or Block.Parent ~= workspace then
+      if Velocity then
+        Velocity:Destroy()
+      end
       if Connection then
         Connection:Disconnect()
       end
@@ -326,8 +329,8 @@ local function TweenBlock()
         else
           Block.CFrame = plrPP.CFrame
         end
-        if Stand then
-          Stand.CFrame = CFrame.new(Block.Position + Vector3.new(0, -10, 0))
+        if Velocity and Velocity.Parent ~= plrPP then
+          Velocity.Parent = plrPP
         end
       end
       
@@ -344,14 +347,15 @@ local function TweenBlock()
           end
         end
       end
+    else
+      if Velocity and Velocity.Parent then
+        Velocity.Parent = nil
+      end
     end
   end
   
   Connection = RunService.Heartbeat:Connect(VerifyTP)
-  return {
-    Block = Block,
-    Stand = Stand
-  }
+  return Block
 end
 local function RemoveEffects()
   local Particles = require(WaitPart(CombatFramework, "Particle"))
