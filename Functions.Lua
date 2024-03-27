@@ -70,13 +70,15 @@ end
 local function IsAlive(Enemie)
   return (Enemie and Enemie:FindFirstChild("Humanoid") and (Enemie.Humanoid.Health > 0))
 end
-local function VerifyNPC(EnemieName)
-  for _,Enemie in pairs(Enemies:GetChildren()) do
-    if Enemie.Name == EnemieName and IsAlive(Enemie) then
-      return Enemie
-    end
+local function GetEnemiesList()
+  local List = ReplicatedStorage:GetChildren()
+  for _,v in pairs(Enemies:GetChildren()) do
+    table.insert(List, v)
   end
-  for _,Enemie in pairs(ReplicatedStorage:GetChildren()) do
+  return List
+end
+local function VerifyNPC(EnemieName)
+  for _,Enemie in pairs(GetEnemiesList()) do
     if Enemie.Name == EnemieName and IsAlive(Enemie) then
       return Enemie
     end
@@ -90,8 +92,8 @@ local function ActiveHaki()
 end
 local function GetEnemies(EnemiesList, Distance)
   local Distance, Nearest = (Distance or math.huge)
-  local function Verify(_,Enemie)
-    if table.find(EnemiesList, Enemie.Name) and IsAlive(Enemie) then
+  for _,Enemie in pairs(GetEnemiesList()) do
+    if IsAlive(Enemie) and table.find(EnemiesList, Enemie.Name) then
       local EnemiePP = Enemie.PrimaryPart
       local PlayerPP = Player.Character and Player.Character.PrimaryPart
       
@@ -100,13 +102,10 @@ local function GetEnemies(EnemiesList, Distance)
       end
     end
   end
-  
-  table.foreach(Enemies:GetChildren(), Verify)
-  table.foreach(ReplicatedStorage:GetChildren(), Verify)
   return Nearest
 end
 local function KillAura()
-  local function Kill(_,Enemie)
+  for _,Enemie in pairs(GetEnemiesList()) do
     if IsAlive(Enemie) then
       local PlayerPP = Player.Character and Player.Character.PrimaryPart
       local EnemiePP = Enemie.PrimaryPart
@@ -122,9 +121,6 @@ local function KillAura()
       end
     end
   end
-  
-  table.foreach(Enemies:GetChildren(), Kill)
-  table.foreach(ReplicatedStorage:GetChildren(), Kill)
 end
 local function BringNPC(Enemie, MultBring)
   if not BringMobs or not BringMobsDistance then
@@ -148,7 +144,7 @@ local function BringNPC(Enemie, MultBring)
     end
     return
   end
-  local function Bring(_,NPC)
+  for _,NPC in pairs(GetEnemiesList()) do
     if MultBring or NPC.Name == Enemie.Name then
       if IsAlive(NPC) and NPC ~= Enemie then
         local EnePP1, EnePP2 = NPC.PrimaryPart, Enemie.PrimaryPart
@@ -177,8 +173,6 @@ local function BringNPC(Enemie, MultBring)
       end
     end
   end
-  
-  table.foreach(Enemies:GetChildren(), Bring)
 end
 local function FireRigControllerEvent(...)
   ReplicatedStorage.RigControllerEvent:FireServer(...)
@@ -431,19 +425,17 @@ end
 local function FarmCheck()
   local PirateTime = tick()
   task.spawn(function()
-    local function VerifyPos(_,Enemie)
-      if Enemie.Name ~= "rip_indra True Form" then
-        local EnemieRP = Enemie and Enemie:FindFirstChild("HumanoidRootPart")
-        
-        if EnemieRP and (EnemieRP.Position - Vector3.new(-5556, 314, -2988)).Magnitude < 700 then
-          PirateTime = tick()
-        end
-      end
-    end
     
     while task.wait() do
-      table.foreach(Enemies:GetChildren(), VerifyPos)
-      table.foreach(ReplicatedStorage:GetChildren(), VerifyPos)
+      for _,Enemie in pairs(GetEnemiesList()) do
+        if Enemie.Name ~= "rip_indra True Form" then
+          local EnemieRP = Enemie and Enemie:FindFirstChild("HumanoidRootPart")
+          
+          if EnemieRP and (EnemieRP.Position - Vector3.new(-5556, 314, -2988)).Magnitude < 700 then
+            PirateTime = tick()
+          end
+        end
+      end
     end
   end)
   
@@ -505,6 +497,7 @@ RunService.Heartbeat:Connect(GetNear)
 RunService.Heartbeat:Connect(requestClick)
 
 return ({
+  GetEnemiesList = GetEnemiesList,
   FireRemote = FireRemote,
   ServerHop = ServerHop,
   IsAlive = IsAlive,
