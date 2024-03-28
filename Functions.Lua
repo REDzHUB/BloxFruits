@@ -68,7 +68,8 @@ local function ServerHop()
   until Server TeleportService:TeleportToPlaceInstance(PlaceId, Server.id, Player)
 end
 local function IsAlive(Enemie)
-  return (Enemie and Enemie:FindFirstChild("Humanoid") and (Enemie.Humanoid.Health > 0))
+  local Humanoid = (Enemie and Enemie:FindFirstChildOfClass("Humanoid"))
+  return (Humanoid and (Humanoid.Health > 0))
 end
 local function GetEnemiesList()
   local List = ReplicatedStorage:GetChildren()
