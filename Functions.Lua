@@ -3,7 +3,11 @@ repeat task.wait()until game:IsLoaded()
 local function WaitPart(first, ...)
   local part = first
   for _,NewPart in ({...}) do
-    part = part:WaitForChild(NewPart, 10)
+    if part:FindFirstChild(NewPart) then
+      part = part[NewPart]
+    else
+      part = part:WaitForChild(NewPart, 10)
+    end
   end
   return part
 end
@@ -257,7 +261,7 @@ local function PlayerClick()
 end
 local function requestClick()
   if not AutoClick then return end
-  if not requestClick then return end
+  if not ClickRequest then return end
   if not IsAlive(Player.Character) or not Player.Character:FindFirstChildOfClass("Tool") then return end
   
   local Kjshsbsi
@@ -382,6 +386,44 @@ local function DisableConsole()
       connection:Disconnect()
     end
   end
+end
+local function Inventory()
+  local InvModule = require(WaitPart(game:GetService("Players").LocalPlayer, "PlayerGui", "Main", "UIController", "Inventory"))
+  
+  local Inv = {}
+  
+  function Inv.VerifyItem(IName, Type)
+    Type = Type or "Sword"
+    
+    for _,Item in pairs(InvModule.Items) do
+      local details = Item.details
+      if details.Type == Type then
+        if details.Name == IName then
+          return details
+        end
+      end
+    end
+  end
+  
+  function Inv.ItemMastery(IName, Type)
+    Type = Type or "Sword"
+    
+    local Item = Inv.VerifyItem(IName, Type)
+    if Item then
+      return Item.Mastery
+    end
+    return 0
+  end
+  
+  function Inv.GetMaterial(MName)
+    local Item = Inv.VerifyItem(MName, "Material")
+    if Item then
+      return Item.Count
+    end
+    return 0
+  end
+  
+  return Inv
 end
 local function ActiveAimbot()
   local function AimBotPart(part)
@@ -514,5 +556,6 @@ return ({
   WaitPart = WaitPart,
   TweenBlock = TweenBlock(),
   AimBotPart = ActiveAimbot(),
-  FarmCheck = FarmCheck()
+  FarmCheck = FarmCheck(),
+  Inventory = Inventory()
 })
