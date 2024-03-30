@@ -468,7 +468,6 @@ end
 local function FarmCheck()
   local PirateTime = tick()
   task.spawn(function()
-    
     while task.wait() do
       for _,Enemie in pairs(GetEnemiesList()) do
         if Enemie.Name ~= "rip_indra True Form" then
@@ -486,8 +485,9 @@ local function FarmCheck()
     return AutoFactory and VerifyNPC("Core")
   end
   
-  local function VerifyRaidPirate()
-    return AutoPiratesSea and (tick() - PirateTime) <= 10
+  local function VerifyRaidPirate(aaa)
+    if aaa then return ((tick() - PirateTime) <= 10) end
+    return AutoPiratesSea and ((tick() - PirateTime) <= 10)
   end
   
   return ({
