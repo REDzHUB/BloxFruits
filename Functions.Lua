@@ -288,7 +288,7 @@ local Module do
     end)
     
     FarmCheck["VerifyFactory"] = function()
-      return AutoFactory and VerifyNPC("Core")
+      return AutoFactory and Module.VerifyNPC("Core")
     end
     
     FarmCheck["VerifyRaidPirate"] = function(aaa)
@@ -400,6 +400,80 @@ local Module do
     
     RunService.Heartbeat:Connect(VerifyTP)
     TweenBlock = Block
+  end
+  
+  local Shop do
+    Shop = {
+      {"Frags", {
+        {"Race Rerol", {"BlackbeardReward", "Reroll", "2"}},
+        {"Reset Stats", {"BlackbeardReward", "Refund", "2"}}
+      }},
+      {"Fighting Style", {
+        {"Buy Black Leg", {"BuyBlackLeg"}},
+        {"Buy Electro", {"BuyElectro"}},
+        {"Buy Fishman Karate", {"BuyFishmanKarate"}},
+        {"Buy Dragon Claw", {"BlackbeardReward", "DragonClaw", "2"}},
+        {"Buy Superhuman", {"BuySuperhuman"}},
+        {"Buy Death Step", {"BuyDeathStep"}},
+        {"Buy Sharkman Karate", {"BuySharkmanKarate"}},
+        {"Buy Electric Claw", {"BuyElectricClaw"}},
+        {"Buy Dragon Talon", {"BuyDragonTalon"}},
+        {"Buy GodHuman", {"BuyGodhuman"}},
+        {"Buy Sanguine Art", {"BuySanguineArt"}}
+      }},
+      {"Ability Teacher", {
+        {"Buy Geppo", {"BuyHaki", "Geppo"}},
+        {"Buy Buso", {"BuyHaki", "Buso"}},
+        {"Buy Soru", {"BuyHaki", "Soru"}},
+      }},
+      {"Sword", {
+        {"Buy Katana", {"BuyItem", "Katana"}},
+        {"Buy Cutlass", {"BuyItem", "Cutlass"}},
+        {"Buy Dual Katana", {"BuyItem", "Dual Katana"}},
+        {"Buy Iron Mace", {"BuyItem", "Iron Mace"}},
+        {"Buy Triple Katana", {"BuyItem", "Triple Katana"}},
+        {"Buy Pipe", {"BuyItem", "Pipe"}},
+        {"Buy Dual-Headed Blade", {"BuyItem", "Dual-Headed Blade"}},
+        {"Buy Soul Cane", {"BuyItem", "Soul Cane"}},
+        {"Buy Bisento", {"BuyItem", "Bisento"}}
+      }},
+      {"Gun", {
+        {"Buy Musket", {"BuyItem", "Musket"}},
+        {"Buy Slingshot", {"BuyItem", "Slingshot"}},
+        {"Buy Flintlock", {"BuyItem", "Flintlock"}},
+        {"Buy Refined Slingshot", {"BuyItem", "Refined Slingshot"}},
+        {"Buy Refined Flintlock", {"BuyItem", "Refined Flintlock"}},
+        {"Buy Cannon", {"BuyItem", "Cannon"}},
+        {"Buy Kabucha", {"BlackbeardReward", "Slingshot", "2"}}
+      }},
+      {"Accessories", {
+        {"Buy Black Cape", {"BuyItem", "Black Cape"}},
+        {"Buy Swordsman Hat", {"BuyItem", "Swordsman Hat"}},
+        {"Tomoe Ring", {"BuyItem", "Tomoe Ring"}}
+      }},
+      {"Race", {
+        {"Ghoul Race", {"Ectoplasm", "Change", 4}},
+        {"Cyborg Race", {"CyborgTrainer", "Buy"}},
+      }}
+    }
+    
+    --[==[
+    -- Example :
+    
+    for _,s in next, Module.Shop do
+      Tabs.Shop:AddSection({s[1]})
+      for _,item in pairs(s[2]) do
+        local buyfunc = item[2]
+        if type(item[2]) == "table" then
+          buyfunc = function()
+            FireRemote(unpack(item[2]))
+          end
+        end
+        
+        Tabs.Shop:AddButton({item[1], buyfunc})
+      end
+    end
+    ]==]
   end
   
   task.spawn(function() -- Remove Particles & Effects
@@ -534,6 +608,7 @@ local Module do
   
   RunService.Stepped:Connect(Module.requestClick) -- auto attack aura
   
+  Module["Shop"] = Shop
   Module["TweenBlock"] = TweenBlock
   Module["FarmCheck"] = FarmCheck
   Module["Inventory"] = Inventory
