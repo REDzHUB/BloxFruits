@@ -1,3 +1,5 @@
+-- Ultima Atualização : terça-feira, 9 de abril de 2024 (BRT)
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -30,21 +32,21 @@ local Module do
   
   local AllEnemies = {}
   
-  function Module.IsAlive(Character)
+  function Module.IsAlive(Character) -- Check the life of the humanoid is > 0
     local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
     return Humanoid and Humanoid.Health > 0
   end
   
-  function Module.FireRemote(...)
+  function Module.FireRemote(...) -- Invoke server CommF_ Remote
     return CommF_:InvokeServer(...)
   end
   
-  function Module.VerifyNPC(EnemieName)
+  function Module.VerifyNPC(EnemieName) -- Verify Enemie from name
     local Enemie = (ReplicatedStorage:FindFirstChild(EnemieName) or Enemies:FindFirstChild(EnemieName))
     if Module.IsAlive(Enemie) then return Enemie end
   end
   
-  function Module.GetEnemies(List)
+  function Module.GetEnemies(List) -- Get Enemies from name. Example : Module.GetEnemies({"Cake Prince", "Dough King"})
     local Distance, Enemie = math.huge
     for _,_Enemie in pairs(Module.GetEnemiesList()) do
       if table.find(List, _Enemie.Name) then
@@ -62,7 +64,7 @@ local Module do
     return Enemie
   end
   
-  function Module.GetEnemiesList()
+  function Module.GetEnemiesList() -- Get all enemies List ( workspace / ReplicatedStorage )
     local List = ReplicatedStorage:GetChildren()
     for _,v in pairs(Enemies:GetChildren()) do
       table.insert(List, v)
@@ -70,7 +72,7 @@ local Module do
     return List
   end
   
-  function Module.BringNPC(Enemie)
+  function Module.BringNPC(Enemie) -- Bring enemies from name
     if BringMobs then
       for _,NPC in pairs(Enemies:GetChildren()) do
         if MultBring or NPC.Name == Enemie.Name then
@@ -122,7 +124,7 @@ local Module do
     end
   end
   
-  function Module.ServerHop()
+  function Module.ServerHop() -- Server Hop
     local Api = "https://games.roblox.com/v1/games/"
     local PlaceId = game.PlaceId
     local Servers = Api .. tostring(PlaceId) .."/servers/Public?sortOrder=Asc&limit=100"
@@ -139,7 +141,7 @@ local Module do
     until Server TeleportService:TeleportToPlaceInstance(PlaceId, Server.id, Player)
   end
   
-  function Module.ActiveHaki()
+  function Module.ActiveHaki() -- Enable Buso Haki
     if AutoHaki then
       if (Player.Character and not Player.Character:FindFirstChild("HasBuso")) then
         Module.FireRemote("Buso")
@@ -147,15 +149,16 @@ local Module do
     end
   end
   
-  function Module.KillAura()
+  function Module.KillAura() -- Kill all nearest enemies
     for _,Enemie in pairs(Enemies:GetChildren()) do
       if Module.IsAlive(Enemie) then
         local PP = Enemie.PrimaryPart
         if PP and Player:DistanceFromCharacter(PP.Position) < 1500 then
-          PP.Size = Vector3.new(70, 70, 70)
+          PP.Size = Vector3.new(60, 60, 60)
           PP.CanCollide = false
           local Humanoid = Enemie:FindFirstChild("Humanoid")
           if Humanoid then
+            Humanoid:ChangeState(15)
             Humanoid.Health = 0
           end
           sethiddenproperty(Player, "SimulationRadius", math.huge)
@@ -529,7 +532,7 @@ local Module do
     end
   end)
   
-  RunService.Stepped:Connect(Module.requestClick)
+  RunService.Stepped:Connect(Module.requestClick) -- auto attack aura
   
   Module["TweenBlock"] = TweenBlock
   Module["FarmCheck"] = FarmCheck
