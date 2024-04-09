@@ -465,16 +465,13 @@ local Module do
     local AimBotPart, NearestPlayer
     
     task.spawn(function() -- Get Nearest Player
-      local function CheckTeam(plr)
-        return Player.Team and Player.Team.Name == "Marines" and plr.Team ~= Player.Team
-      end
-      
-      while task.wait() do
+      local function GetNear()
         local Distance, Nearest = math.huge
         for _,plr in pairs(Players:GetPlayers()) do
-          if (plr ~= Player) and CheckTeam(plr) then
+          if (plr ~= Player) then
             local plrPP = plr.Character and plr.Character.PrimaryPart
             local Mag = plrPP and Player:DistanceFromCharacter(plrPP.Position)
+            
             if Mag and Mag <= Distance then
               Distance, Nearest = Mag, ({
                 ["Position"] = (plrPP.Position),
@@ -485,8 +482,10 @@ local Module do
           end
         end
         
-        NearestPlayer = Nearest or NearestPlayer
+        NearestPlayer = Nearest
       end
+      
+      RunService.Heartbeat:Connect(GetNear)
     end)
     
     task.spawn(function() -- Enable Aim Bot
@@ -506,14 +505,14 @@ local Module do
                 end
               end
             end
-            if NearestPlayer then
-              return OldHook(self, NearestPlayer.Position, V2, ...)
+            if AimbotPlayer and NearestPlayer then
+              return OldHook(self, NearestPlayer.Position)
             end
           end
         elseif Method == "invokeserver" then
           if type(V1) == "string" and V1 == "TAP" and typeof(V2) == "Vector3" then
             if AimbotTap and NearestPlayer then
-              return OldHook(self, V1, NearestPlayer.Postion, ...)
+              return OldHook(self, "TAP", NearestPlayer.Postion)
             end
           end
         end
