@@ -465,10 +465,14 @@ local Module do
     local AimBotPart, NearestPlayer
     
     task.spawn(function() -- Get Nearest Player
+      local function CheckTeam(plr)
+        return tostring(plr.Team) == "Pirates" or (tostring(plr.Team) ~= tostring(Player.Team))
+      end
+      
       local function GetNear()
-        local Distance, Nearest = math.huge
+        local Distance, Nearest = math.huge, false
         for _,plr in pairs(Players:GetPlayers()) do
-          if (plr ~= Player) then
+          if (plr ~= Player) and CheckTeam(plr) then
             local plrPP = plr.Character and plr.Character.PrimaryPart
             local Mag = plrPP and Player:DistanceFromCharacter(plrPP.Position)
             
@@ -506,13 +510,13 @@ local Module do
               end
             end
             if AimbotPlayer and NearestPlayer then
-              return OldHook(self, NearestPlayer.Position)
+              return OldHook(self, NearestPlayer.Position, V2, ...)
             end
           end
         elseif Method == "invokeserver" then
           if type(V1) == "string" and V1 == "TAP" and typeof(V2) == "Vector3" then
             if AimbotTap and NearestPlayer then
-              return OldHook(self, "TAP", NearestPlayer.Postion)
+              return OldHook(self, "TAP", NearestPlayer.Postion, V2, ...)
             end
           end
         end
