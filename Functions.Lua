@@ -1,17 +1,3 @@
-repeat task.wait()until game:IsLoaded()
-
-local function WaitPart(first, ...)
-  local part = first
-  for _,NewPart in ({...}) do
-    if part:FindFirstChild(NewPart) then
-      part = part[NewPart]
-    else
-      part = part:WaitForChild(NewPart, 10)
-    end
-  end
-  return part
-end
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -20,542 +6,537 @@ local LogService = game:GetService("LogService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
-local Enemies = WaitPart(workspace, "Enemies")
 local Player = Players.LocalPlayer
 
-local Remotes = WaitPart(ReplicatedStorage, "Remotes")
-local CommF = WaitPart(Remotes, "CommF_")
+local function WaitChilds(path, ...)
+  local last = path
+  for _,child in ({...}) do
+    last = last:FindFirstChild(child) or last:WaitForChild(child, 10)
+  end
+  return last
+end
 
-local CFWReplicated = WaitPart(ReplicatedStorage, "CombatFramework")
-local RigLib = WaitPart(CFWReplicated, "RigLib")
+local CombatFramework = WaitChilds(Player, "PlayerScripts", "CombatFramework")
+local CFWReplicated = WaitChilds(ReplicatedStorage, "CombatFramework")
+local RigLib = WaitChilds(CFWReplicated, "RigLib")
 
-local CombatFramework = WaitPart(Player, "PlayerScripts", "CombatFramework")
+local Enemies = WaitChilds(workspace, "Enemies")
 
-local OldFunc = require(RigLib).getBladeHits
+local Remotes = WaitChilds(ReplicatedStorage, "Remotes")
+local CommF_ = WaitChilds(Remotes, "CommF_")
 
-require(RigLib).getBladeHits = function(plrChar, Handle, Distance)
-  local BladeHit = OldFunc(plrChar, Handle, AttackDistance and 60 or Distance)
-  local NewHits, Verify = {}, {}
+local Module do
+  Module = {}
   
-  for _,EnemiePart in pairs(BladeHit) do
-    local Enemie = EnemiePart.Parent
-    if not Verify[Enemie] and Enemie:FindFirstChild("Humanoid") then
-      table.insert(NewHits, Enemie.PrimaryPart)
-      Verify[Enemie] = true
+  local AllEnemies = {}
+  
+  function Module.IsAlive(Character)
+    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+    return Humanoid and Humanoid.Health > 0
+  end
+  
+  function Module.FireRemote(...)
+    return CommF_:InvokeServer(...)
+  end
+  
+  function Module.VerifyNPC(EnemieName)
+    local Enemie = (ReplicatedStorage:FindFirstChild(EnemieName) or Enemies:FindFirstChild(EnemieName))
+    if Module.IsAlive(Enemie) then return Enemie end
+  end
+  
+  function Module.GetEnemies(List)
+    local _Enemies = {}
+    for _,Enemie in pairs(List) do
+      local _Enemie = (ReplicatedStorage:FindFirstChild(Enemie) or Enemies:FindFirstChild(Enemie))
+      if Module.IsAlive(_Enemie) then
+        table.insert(_Enemies, _Enemie)
+      end
     end
-  end
-  return NewHits
-end
-
-local getBladeHits = require(RigLib).getBladeHits
-
-local CombatLib = getupvalue(require(Player.PlayerScripts.CombatFramework), 2)
-
-local Cowndown = tick()
-local function FireRemote(...)
-  return CommF:InvokeServer(...)
-end
-local function ServerHop()
-  local Api = "https://games.roblox.com/v1/games/"
-  local PlaceId = game.PlaceId
-  local Servers = Api .. tostring(PlaceId) .."/servers/Public?sortOrder=Asc&limit=100"
-  
-  function ListServers(cursor)
-    local Raw = game:HttpGet(Servers .. ((cursor and "&cursor="..cursor) or ""))
-    return HttpService:JSONDecode(Raw)
-  end
-  
-  local Server, Next
-  repeat
-    local Servers = ListServers(Next)
-    Server = Servers.data[1] Next = Servers.nextPageCursor
-  until Server TeleportService:TeleportToPlaceInstance(PlaceId, Server.id, Player)
-end
-local function IsAlive(Enemie)
-  local Humanoid = (Enemie and Enemie:FindFirstChildOfClass("Humanoid"))
-  return (Humanoid and (Humanoid.Health > 0))
-end
-local function GetEnemiesList()
-  local List = ReplicatedStorage:GetChildren()
-  for _,v in pairs(Enemies:GetChildren()) do
-    table.insert(List, v)
-  end
-  return List
-end
-local function VerifyNPC(EnemieName)
-  for _,Enemie in pairs(GetEnemiesList()) do
-    if Enemie.Name == EnemieName and IsAlive(Enemie) then
+    if #_Enemies > 0 then
+      local Distance, Enemie = math.huge
+      for _,_Enemie in pairs(_Enemies) do
+        local PP = _Enemie.PrimaryPart
+        local Mag = PP and Player:DistanceFromCharacter(PP.Position)
+        
+        if Mag and Mag < Distance then
+          Distance, Enemie = Mag, _Enemie
+        end
+      end
       return Enemie
     end
   end
-end
-local function ActiveHaki()
-  local VerifyHaki = Player.Character and Player.Character:FindFirstChild("HasBuso")
-  if AutoHaki and not VerifyHaki then
-    FireRemote("Buso")
-  end
-end
-local function GetEnemies(EnemiesList, Distance)
-  local Distance, Nearest = (Distance or math.huge)
-  for _,Enemie in pairs(GetEnemiesList()) do
-    if IsAlive(Enemie) and table.find(EnemiesList, Enemie.Name) then
-      local EnemiePP = Enemie.PrimaryPart
-      local PlayerPP = Player.Character and Player.Character.PrimaryPart
-      
-      if EnemiePP and PlayerPP and (PlayerPP.Position - EnemiePP.Position).Magnitude <= Distance then
-        Distance, Nearest = (PlayerPP.Position - EnemiePP.Position).Magnitude, Enemie
-      end
+  
+  function Module.GetEnemiesList()
+    local List = ReplicatedStorage:GetChildren()
+    for _,v in pairs(Enemies:GetChildren()) do
+      table.insert(List, v)
     end
+    return List
   end
-  return Nearest
-end
-local function KillAura()
-  for _,Enemie in pairs(GetEnemiesList()) do
-    if IsAlive(Enemie) then
-      local PlayerPP = Player.Character and Player.Character.PrimaryPart
-      local EnemiePP = Enemie.PrimaryPart
-      
-      if PlayerPP and EnemiePP and (EnemiePP.Position - PlayerPP.Position).Magnitude < 1500 then
-        EnemiePP.Size = Vector3.new(70, 70, 70)
-        EnemiePP.CanCollide = false
-        local EnemieH = Enemie:FindFirstChild("Humanoid")
-        if EnemieH then
-          EnemieH.Health = 0
-        end
-        sethiddenproperty(Player, "SimulationRadius", math.huge)
-      end
-    end
-  end
-end
-local function BringNPC(Enemie, MultBring)
-  if not BringMobs or not BringMobsDistance then
-    local EnemiePP = Enemie.PrimaryPart
-    if EnemiePP then
-      EnemiePP.CanCollide = false
-      EnemiePP.Size = Vector3.new(50, 50, 50)
-      local EnemieH = Enemie:FindFirstChild("Humanoid")
-      if EnemieH then
-        EnemieH.WalkSpeed = 0
-        EnemieH.JumpPower = 0
-        EnemieH:ChangeState(14)
-        if EnemieH:FindFirstChild("Animator") then
-          EnemieH.Animator:Destroy()
-        end
-      end
-      if NPC:FindFirstChild("Head") and NPC.Head.CanCollide then
-        NPC.Head.CanCollide = false
-      end
-      sethiddenproperty(Player, "SimulationRadius",  math.huge)
-    end
-    return
-  end
-  for _,NPC in pairs(GetEnemiesList()) do
-    if MultBring or NPC.Name == Enemie.Name then
-      if IsAlive(NPC) and NPC ~= Enemie then
-        local EnePP1, EnePP2 = NPC.PrimaryPart, Enemie.PrimaryPart
-        
-        if EnePP1 and EnePP2 then
-          local Mag = (EnePP1.Position - EnePP2.Position).Magnitude
-          if Mag > 1 and Mag < BringMobsDistance then
-            EnePP1.CFrame = EnePP2.CFrame
-            EnePP1.CanCollide = false
-            EnePP1.Size = Vector3.new(60, 60, 60)
-            local EnemieH = Enemie:FindFirstChild("Humanoid")
-            if EnemieH then
-              EnemieH.WalkSpeed = 0
-              EnemieH.JumpPower = 0
-              EnemieH:ChangeState(14)
-              if EnemieH:FindFirstChild("Animator") then
-                EnemieH.Animator:Destroy()
+  
+  function Module.BringNPC(Enemie)
+    if BringMobs then
+      for _,NPC in pairs(Enemies:GetChildren()) do
+        if MultBring or NPC.Name == Enemie.Name then
+          if Module.IsAlive(NPC) then
+            if NPC:FindFirstChild("Humanoid") then
+              local Hum = NPC.Humanoid
+              Hum.WalkSpeed = 0
+              Hum:ChangeState(14)
+              if Hum:FindFirstChild("Animator") then
+                Hum.Animator:Destroy()
               end
             end
-            if NPC:FindFirstChild("Head") and NPC.Head.CanCollide then
-              NPC.Head.CanCollide = false
+            if NPC.PrimaryPart then
+              local PP = NPC.PrimaryPart
+              PP.CanCollide = false
+              PP.Size = Vector3.new(50, 50, 50)
+              
+              if Enemie.PrimaryPart then
+                local PP1 = Enemie.PrimaryPart
+                local Mag = (PP1.Position - PP.Position).Magnitude
+                
+                if Mag > 1 and Mag < BringMobsDistance then
+                  PP.CFrame = PP1.CFrame
+                end
+              end
+              sethiddenproperty(Player, "SimulationRadius",  math.huge)
             end
-            sethiddenproperty(Player, "SimulationRadius",  math.huge)
           end
         end
       end
+    else
+      if Module.IsAlive(Enemie) then
+        if Enemie:FindFirstChild("Humanoid") then
+          local Hum = Enemie.Humanoid
+          Hum.WalkSpeed = 0
+          Hum:ChangeState(14)
+          if Hum:FindFirstChild("Animator") then
+            Hum.Animator:Destroy()
+          end
+        end
+        if Enemie.PrimaryPart then
+          local PP = Enemie.PrimaryPart
+          PP.CanCollide = false
+          PP.Size = Vector3.new(50, 50, 50)
+          
+          sethiddenproperty(Player, "SimulationRadius",  math.huge)
+        end
+      end
     end
   end
-end
-local function FireRigControllerEvent(...)
-  ReplicatedStorage.RigControllerEvent:FireServer(...)
-end
-local function GetBladeHit()
-  local AC = CombatLib.activeController
-  local Weapon = AC.blades[1]
-  if not Weapon then
-    return
+  
+  function Module.ServerHop()
+    local Api = "https://games.roblox.com/v1/games/"
+    local PlaceId = game.PlaceId
+    local Servers = Api .. tostring(PlaceId) .."/servers/Public?sortOrder=Asc&limit=100"
+    
+    function ListServers(cursor)
+      local Raw = game:HttpGet(Servers .. ((cursor and "&cursor="..cursor) or ""))
+      return HttpService:JSONDecode(Raw)
+    end
+    
+    local Server, Next
+    repeat
+      local Servers = ListServers(Next)
+      Server = Servers.data[1] Next = Servers.nextPageCursor
+    until Server TeleportService:TeleportToPlaceInstance(PlaceId, Server.id, Player)
   end
-  if Weapon then
-    while Weapon.Parent ~= Player.Character do
-      Weapon = Weapon.Parent
+  
+  function Module.ActiveHaki()
+    if AutoHaki then
+      if (Player.Character and not Player.Character:FindFirstChild("HasBuso")) then
+        Module.FireRemote("Buso")
+      end
     end
   end
-  return Weapon
-end
-local function BladeHitAttack() -- Source?
-  if not FastAttack then
-    VirtualUser:CaptureController()
-    VirtualUser:Button1Down(Vector2.new(1e4, 1e4))
-    return
+  
+  function Module.KillAura()
+    for _,Enemie in pairs(Enemies:GetChildren()) do
+      if Module.IsAlive(Enemie) then
+        local PP = Enemie.PrimaryPart
+        if PP and Player:DistanceFromCharacter(PP.Position) < 1500 then
+          PP.Size = Vector3.new(70, 70, 70)
+          PP.CanCollide = false
+          local Humanoid = Enemie:FindFirstChild("Humanoid")
+          if Humanoid then
+            Humanoid.Health = 0
+          end
+          sethiddenproperty(Player, "SimulationRadius", math.huge)
+        end
+      end
+    end
   end
-  pcall(function()
-    local AC = CombatLib.activeController
+  
+  local FastAttack do
+    FastAttack = {}
     
-    local plrChar = Player.Character
-    local plrPP = plrChar and plrChar.PrimaryPart
+    local CombatLib = getupvalue(require(CombatFramework), 2)
+    local LibModule = require(RigLib)
+    local _getBladeHits = LibModule.getBladeHits
     
-    if plrChar and plrPP then
-      local BladeHit = getBladeHits(plrChar, {plrPP}, 60)
-      if #BladeHit > 0 then
-        local Val1 = getupvalue(AC.attack, 5) -- A
-        local Val2 = getupvalue(AC.attack, 6) -- B
-        local Val3 = getupvalue(AC.attack, 4) -- C
-        local Val4 = getupvalue(AC.attack, 7) -- D
-        local Val5 = (Val1 * 798405 + Val3 * 727595) % Val2
-        local Val6 = Val3 * 798405
-        (function()
-          Val5 = (Val5 * Val2 + Val6) % 1099511627776
-          Val1 = math.floor(Val5 / Val2)
-          Val3 = Val5 - Val1 * Val2
-        end)()
-        Val4 = Val4 + 1
-        setupvalue(AC.attack, 5, Val1)
-        setupvalue(AC.attack, 6, Val2)
-        setupvalue(AC.attack, 4, Val3)
-        setupvalue(AC.attack, 7, Val4)
-        
-        local function Attack()
-          if Player.Character and Player.Character:FindFirstChildOfClass("Tool") then
-            if AC.blades and AC.blades[1] then
-              local Blade = GetBladeHit()
+    local RigControllerEvent = WaitChilds(ReplicatedStorage, "RigControllerEvent")
+    local Validator = WaitChilds(Remotes, "Validator")
+    
+    local function getBladeHits(plrChar, Handle, Distance)
+      local BladeHit = _getBladeHits(plrChar, Handle, (( AttackDistance and 60 ) or Distance ))
+      local NewHits, Verify = {}, {}
+      
+      for _,EnemiePart in pairs(BladeHit) do
+        local Enemie = EnemiePart.Parent
+        if not Verify[Enemie] and Enemie:FindFirstChild("Humanoid") then
+          table.insert(NewHits, Enemie.PrimaryPart)
+          Verify[Enemie] = true
+        end
+      end
+      return NewHits
+    end
+    
+    function Module.BladeHitAttack() -- Source?
+      if not getgenv().FastAttack then
+        VirtualUser:CaptureController()
+        VirtualUser:Button1Down(Vector2.new(1e4, 1e4))
+        return
+      end
+      pcall(function()
+        local AC = CombatLib.activeController
+        if AC.blades and AC.blades[1] then
+          local plrChar = Player.Character
+          
+          if plrChar then
+            local BladeHits = getBladeHits(plrChar, AC.blades, 60)
+            
+            if #BladeHits > 0 then
+              local Val1 = getupvalue(AC.attack, 5) -- A
+              local Val2 = getupvalue(AC.attack, 6) -- B
+              local Val3 = getupvalue(AC.attack, 4) -- C
+              local Val4 = getupvalue(AC.attack, 7) -- D
+              local Val5 = ((Val1 * 798405 + Val3 * 727595) % Val2)
+              local Val6 = (Val3 * 798405)
+              
+              Val5 = ((Val5 * Val2 + Val6) % 1099511627776)
+              Val1 = (math.floor(Val5 / Val2))
+              Val3 = (Val5 - Val1 * Val2)
+              Val4 = (Val4 + 1)
+              
+              setupvalue(AC.attack, 5, Val1)
+              setupvalue(AC.attack, 6, Val2)
+              setupvalue(AC.attack, 4, Val3)
+              setupvalue(AC.attack, 7, Val4)
+              
+              local Blade = (Player.Character and Player.Character:FindFirstChildOfClass("Tool"))
               if Blade then
                 AC.animator.anims.basic[1]:Play(0.01, 0.01, 0.01)
-                FireRigControllerEvent("weaponChange", tostring(Blade))
-                Remotes.Validator:FireServer(math.floor(Val5 / 1099511627776 * 16777215), Val4)
-                FireRigControllerEvent("hit", BladeHit, 1, "")
+                RigControllerEvent:FireServer("weaponChange", Blade.Name)
+                Validator:FireServer(math.floor(Val5 / 1099511627776 * 16777215), Val4)
+                RigControllerEvent:FireServer("hit", BladeHits, 1, "")
               end
             end
           end
         end
-        task.spawn(Attack)
+      end)
+    end
+    
+    local Debounce
+    function Module.PlayerClick()
+      local Delay = AutoClickDelay or 0.1
+      if not Debounce or (tick() - Debounce) >= Delay then
+        task.spawn(Module.BladeHitAttack)
+        Debounce = tick()
       end
     end
-    AC.timeToNextAttack = 0
-    AC.attacking = false
-    AC.timeToNextBlock = 0
-    AC.increment = 4
-    AC.blocking = false
-    AC.hitboxMagnitude = 200
-    AC.humanoid.AutoRotate = true
-  end)
-end
-local function PlayerClick()
-  local Delay = AutoClickDelay or 0.1
-  if (tick() - Cowndown) >= Delay then
-    Cowndown = tick()
-    task.spawn(BladeHitAttack)
-  end
-end
-local function requestClick()
-  if not AutoClick then return end
-  if not ClickRequest then return end
-  if not IsAlive(Player.Character) or not Player.Character:FindFirstChildOfClass("Tool") then return end
-  
-  local Kjshsbsi
-  for _,Enemie in pairs(Enemies:GetChildren()) do
-    if Kjshsbsi then
-      break
-    end
-    pcall(function()
-      local EnemieH = Enemie:FindFirstChild("Humanoid")
-      if EnemieH and EnemieH.Health > 0 then
-        local plrPP = Player.Character and Player.Character.PrimaryPart
-        local EnemiePP = Enemie.PrimaryPart
-        if plrPP and EnemiePP and (EnemiePP.Position - plrPP.Position).Magnitude < 60 then
-          Kjshsbsi = true
+    
+    function Module.requestClick()
+      if AutoClick and ClickRequest then
+        if not Module.IsAlive(Player.Character) or not Player.Character:FindFirstChildOfClass("Tool") then return end
+        
+        for _,Enemie in pairs(Enemies:GetChildren()) do
+          if Module.IsAlive(Enemie) then
+            local EnemiePP = Enemie.PrimaryPart
+            
+            if EnemiePP and Player:DistanceFromCharacter(EnemiePP.Position) < 60 then
+              Module.PlayerClick()
+              break
+            end
+          end
         end
       end
-    end)
-  end
-  if Kjshsbsi then
-    PlayerClick()
-  end
-end
-local function StopCameraShaker()
-  local CameraShaker = require(WaitPart(ReplicatedStorage, "Util", "CameraShaker"))
-  CameraShaker:Stop()
-end
-local function TweenBlock()
-  local Block = Instance.new("Part", workspace)
-  Block.Size = Vector3.new(1, 1, 1)
-  Block.Name = tostring(Player.UserId) .. "_Block"
-  Block.Anchored = true
-  Block.CanCollide = false
-  Block.CanTouch = false
-  Block.Transparency = 1
-  
-  local Velocity = Instance.new("BodyVelocity")
-  Velocity.Name = "BV_Player"
-  Velocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-  Velocity.Velocity = Vector3.new()
-  
-  local BlockFind = workspace:FindFirstChild(Block.Name)
-  if BlockFind and BlockFind ~= Block then
-    BlockFind:Destroy()
+    end
+    
+    LibModule.getBladeHits = getBladeHits
   end
   
-  local function VerifyTP()
-    if not Block or Block.Parent ~= workspace then
-      if Velocity then
-        Velocity:Destroy()
+  local FarmCheck do
+    FarmCheck = {}
+    
+    task.spawn(function()
+      local LastTick
+      
+      while task.wait(0.5) do
+        for _,Enemie in pairs(Module.GetEnemiesList()) do
+          if Module.IsAlive(Enemie) then
+            if Enemie.Name ~= "rip_indra True Form" then
+              local EnemiePP = Enemie.PrimaryPart
+              if EnemiePP and (EnemiePP.Position - Vector3.new(-5556, 314, -2988)).Magnitude < 700 then
+                LastTick = tick()
+              end
+            end
+          end
+        end
+        
+        FarmCheck.PirateRaid = (LastTick and ((tick() - LastTick) <= 10))
       end
+    end)
+    
+    FarmCheck["VerifyFactory"] = function()
+      return AutoFactory and VerifyNPC("Core")
+    end
+    
+    FarmCheck["VerifyRaidPirate"] = function(aaa)
+      return AutoPiratesSea and FarmCheck.PirateRaid or aaa and FarmCheck.PirateRaid
+    end
+  end
+  
+  local Inventory do
+    Inventory = {}
+    
+    local _Inventory = require(WaitChilds(Player, "PlayerGui", "Main", "UIController", "Inventory"))
+    
+    function Inventory.VerifyItem(IName, Type)
+      Type = Type or "Sword"
+      
+      for _,Item in pairs(_Inventory.Items) do
+        local details = Item.details
+        if details.Type == Type then
+          if details.Name == IName then
+            return details
+          end
+        end
+      end
+    end
+    
+    function Inventory.ItemMastery(IName, Type)
+      Type = Type or "Sword"
+      
+      local Item = Inventory.VerifyItem(IName, Type)
+      if Item then
+        return Item.Mastery
+      end
+      return 0
+    end
+    
+    function Inventory.GetMaterial(MName)
+      local Item = Inventory.VerifyItem(MName, "Material")
+      if Item then
+        return Item.Count
+      end
+      return 0
+    end
+  end
+  
+  local TweenBlock do
+    local Block = Instance.new("Part", workspace)
+    Block.Size = Vector3.new(1, 1, 1)
+    Block.Name = (tostring(Player.UserId) .. "_Block")
+    Block.Anchored = true
+    Block.CanCollide = false
+    Block.CanTouch = false
+    Block.Transparency = 1
+    
+    local Velocity = Instance.new("BodyVelocity")
+    Velocity.Name = "BV_Player"
+    Velocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    Velocity.Velocity = Vector3.new()
+    
+    local BlockFind = workspace:FindFirstChild(Block.Name)
+    if BlockFind and BlockFind ~= Block then
+      BlockFind:Destroy()
+    end
+    
+    local function VerifyTP()
+      if not Block or Block.Parent ~= workspace then
+        if Velocity then
+          Velocity:Destroy()
+        end
+        if Connection then
+          Connection:Disconnect()
+        end
+        return
+      end
+      
+      local plrChar = Player.Character
+      if OnFarm then
+        local plrPP = plrChar and plrChar.PrimaryPart
+        
+        if plrPP then
+          if (plrPP.Position - Block.Position).Magnitude < 150 then
+            plrPP.CFrame = Block.CFrame
+          else
+            Block.CFrame = plrPP.CFrame
+          end
+          if Velocity and Velocity.Parent ~= plrPP then
+            Velocity.Parent = plrPP
+          end
+        end
+        
+        if plrChar then
+          if plrChar:FindFirstChild("Stun") and plrChar.Stun.Value ~= 0 then
+            plrChar.Stun.Value = 0
+          end
+          if plrChar:FindFirstChild("Busy") and plrChar.Busy.Value then
+            plrChar.Busy.Value = false
+          end
+          for _,Part in pairs(plrChar:GetChildren()) do
+            if Part:IsA("BasePart") and Part.CanCollide then
+              Part.CanCollide = false
+            end
+          end
+        end
+      else
+        if Velocity and Velocity.Parent then
+          Velocity.Parent = nil
+        end
+      end
+    end
+    
+    RunService.Heartbeat:Connect(VerifyTP)
+    TweenBlock = Block
+  end
+  
+  task.spawn(function() -- Remove Particles & Effects
+    local Particles = require(WaitChilds(CombatFramework, "Particle"))
+    local RigLeg = require(WaitChilds(ReplicatedStorage, "CombatFramework", "RigLib"))
+    local DeathM = require(WaitChilds(ReplicatedStorage, "Effect", "Container", "Death"))
+    local CameraShaker = require(WaitChilds(ReplicatedStorage, "Util", "CameraShaker"))
+    
+    CameraShaker:Stop()
+    hookfunction(DeathM, function()end)
+    
+    local shared = {}
+    if not shared.orl then shared.orl = RigLeg.wrapAttackAnimationAsync end
+    if not shared.cpc then shared.cpc = Particles.play end
+    
+    RigLeg.wrapAttackAnimationAsync = function(Val1, Val2, Val3, Val4, func)
+      local Hits = RigLeg.getBladeHits(Val2, Val3, Val4)
+      if Hits then
+        Particles.play = function()end
+        Val1:Play(0.01, 0.01, 0.01)
+        func(Hits)
+        Particles.play = shared.cpc
+        task.wait(Val1.length * 0.5)
+        Val1:Stop()
+      else
+        Val1:Play()
+      end
+    end
+  end)
+  
+  task.spawn(function() -- Bypass Walk Speed
+    local OldHook
+    OldHook = hookmetamethod(Player, "__newindex", function(self, Index, Value)
+      if tostring(self) == "Humanoid" and Index == "WalkSpeed" then
+        return OldHook(self, Index, WalkSpeedBypass or Value)
+      end
+      return OldHook(self, Index, Value)
+    end)
+  end)
+  
+  task.spawn(function() -- Disable Console
+    for _,Connection in pairs(getconnections(LogService.MessageOut)) do
       if Connection then
         Connection:Disconnect()
       end
-      return
     end
-    
-    local plrChar = Player.Character
-    if OnFarm then
-      local plrPP = plrChar and plrChar.PrimaryPart
-      
-      if plrPP then
-        if (plrPP.Position - Block.Position).Magnitude < 150 then
-          plrPP.CFrame = Block.CFrame
-        else
-          Block.CFrame = plrPP.CFrame
-        end
-        if Velocity and Velocity.Parent ~= plrPP then
-          Velocity.Parent = plrPP
-        end
-      end
-      
-      if plrChar then
-        if plrChar:FindFirstChild("Stun") and plrChar.Stun.Value ~= 0 then
-          plrChar.Stun.Value = 0
-        end
-        if plrChar:FindFirstChild("Busy") and plrChar.Busy.Value then
-          plrChar.Busy.Value = false
-        end
-        for _,Part in pairs(plrChar:GetChildren()) do
-          if Part:IsA("BasePart") and Part.CanCollide then
-            Part.CanCollide = false
-          end
-        end
-      end
-    else
-      if Velocity and Velocity.Parent then
-        Velocity.Parent = nil
-      end
-    end
-  end
-  
-  Connection = RunService.Heartbeat:Connect(VerifyTP)
-  return Block
-end
-local function RemoveEffects()
-  local Particles = require(WaitPart(CombatFramework, "Particle"))
-  local RigLeg = require(WaitPart(ReplicatedStorage, "CombatFramework", "RigLib"))
-  local DeathM = require(WaitPart(ReplicatedStorage, "Effect", "Container", "Death"))
-  hookfunction(DeathM, function()end)
-  
-  local shared = {}
-  if not shared.orl then shared.orl = RigLeg.wrapAttackAnimationAsync end
-  if not shared.cpc then shared.cpc = Particles.play end
-  
-  RigLeg.wrapAttackAnimationAsync = function(Val1, Val2, Val3, Val4, func)
-    local Hits = RigLeg.getBladeHits(Val2, Val3, Val4)
-    if Hits then
-      Particles.play = function()end
-      Val1:Play(0.01, 0.01, 0.01)
-      func(Hits)
-      Particles.play = shared.cpc
-      task.wait(Val1.length * 0.5)
-      Val1:Stop()
-    else
-      Val1:Play()
-    end
-  end
-end
-local function DisableConsole()
-  for _,connection in pairs(getconnections(LogService.MessageOut)) do
-    if connection then
-      connection:Disconnect()
-    end
-  end
-end
-local function Inventory()
-  local InvModule = require(WaitPart(game:GetService("Players").LocalPlayer, "PlayerGui", "Main", "UIController", "Inventory"))
-  
-  local Inv = {}
-  
-  function Inv.VerifyItem(IName, Type)
-    Type = Type or "Sword"
-    
-    for _,Item in pairs(InvModule.Items) do
-      local details = Item.details
-      if details.Type == Type then
-        if details.Name == IName then
-          return details
-        end
-      end
-    end
-  end
-  
-  function Inv.ItemMastery(IName, Type)
-    Type = Type or "Sword"
-    
-    local Item = Inv.VerifyItem(IName, Type)
-    if Item then
-      return Item.Mastery
-    end
-    return 0
-  end
-  
-  function Inv.GetMaterial(MName)
-    local Item = Inv.VerifyItem(MName, "Material")
-    if Item then
-      return Item.Count
-    end
-    return 0
-  end
-  
-  return Inv
-end
-local function ActiveAimbot()
-  local function AimBotPart(part)
-    AimbotPos = part.Position
-  end
-  
-  local OldHook
-  OldHook = hookmetamethod(game, "__namecall", function(self, Val1, Val2, ...)
-    local Method = getnamecallmethod():lower()
-    if tostring(self) == "RemoteEvent" and Method == "fireserver" then
-      if typeof(Val1) == "Vector3" then
-        if AimbotPlayer then
-          if AimbotPlayerPos then
-            return OldHook(self, AimbotPlayerPos, ...)
-          end
-        elseif AimbotPos then
-          if AutoFarmSea or AutoWoodPlanks or Sea2_AutoFarmSea then
-            if SeaAimBotSkill then
-              return OldHook(self, AimbotPos, ...)
-            end
-          elseif AutoFarmMastery then
-            if AimBotSkill then
-              return OldHook(self, AimbotPos, ...)
-            end
-          end
-        end
-      end
-    elseif Method == "invokeserver" then
-      if type(Val1) == "string" and Val1 == "TAP" and typeof(Val2) == "Vector3" then
-        if AimbotTap then
-          if AimbotPlayerPos then
-            return OldHook(self, "TAP", AimbotPlayerPos)
-          end
-        end
-      end
-    end
-    return OldHook(self, Val1, Val2, ...)
   end)
   
-  return AimBotPart
-end
-local function FarmCheck()
-  local PirateTime = tick()
-  task.spawn(function()
+  task.spawn(function() -- Fast Attack
     while task.wait() do
-      for _,Enemie in pairs(GetEnemiesList()) do
-        if Enemie.Name ~= "rip_indra True Form" then
-          local EnemieRP = Enemie and Enemie:FindFirstChild("HumanoidRootPart")
-          
-          if EnemieRP and (EnemieRP.Position - Vector3.new(-5556, 314, -2988)).Magnitude < 700 then
-            PirateTime = tick()
+      if getgenv().FastAttack then
+        pcall(function()
+          local AC = CF.activeController
+          AC.timeToNextAttack = 0
+          AC.attacking = false
+          AC.timeToNextBlock = 0
+          AC.increment = 4
+          AC.blocking = false
+          AC.humanoid.AutoRotate = true
+        end)
+      end
+    end
+  end)
+  
+  task.spawn(function() -- Aim Bot
+    local AimBotPart, NearestPlayer
+    
+    task.spawn(function() -- Get Nearest Player
+      local function CheckTeam(plr)
+        return Player.Team and Player.Team.Name == "Marines" and plr.Team ~= Player.Team
+      end
+      
+      while task.wait() do
+        local Distance, Nearest = math.huge
+        for _,plr in pairs(Players:GetPlayers()) do
+          if (plr ~= Player) and CheckTeam(plr) then
+            local plrPP = plr.Character and plr.Character.PrimaryPart
+            local Mag = plrPP and Player:DistanceFromCharacter(plrPP.Position)
+            if Mag and Mag <= Distance then
+              Distance, Nearest = Mag, ({
+                ["Position"] = (plrPP.Position),
+                ["PrimaryPart"] = plrPP,
+                ["DistanceFromCharacter"] = Mag
+              })
+            end
           end
         end
+        
+        NearestPlayer = Nearest or NearestPlayer
       end
+    end)
+    
+    task.spawn(function() -- Enable Aim Bot
+      local OldHook
+      OldHook = hookmetamethod(game, "__namecall", function(self, V1, V2, ...)
+        local Method = getnamecallmethod():lower()
+        if tostring(self) == "RemoteEvent" and Method == "fireserver" then
+          if typeof(V1) == "Vector3" then
+            if AimBotPart then
+              if AutoFarmSea or AutoWoodPlanks or Sea2_AutoFarmSea then
+                if SeaAimBotSkill then
+                  return OldHook(self, AimbotPos, V2, ...)
+                end
+              elseif AutoFarmMastery then
+                if AimBotSkill then
+                  return OldHook(self, AimbotPos, V2, ...)
+                end
+              end
+            end
+            if NearestPlayer then
+              return OldHook(self, NearestPlayer.Position, V2, ...)
+            end
+          end
+        elseif Method == "invokeserver" then
+          if type(V1) == "string" and V1 == "TAP" and typeof(V2) == "Vector3" then
+            if AimbotTap and NearestPlayer then
+              return OldHook(self, V1, NearestPlayer.Postion, ...)
+            end
+          end
+        end
+        return OldHook(self, V1, V2, ...)
+      end)
+    end)
+    
+    Module["AimBotPart"] = function(part)
+      AimBotPart = part.Position
     end
   end)
   
-  local function VerifyFactory()
-    return AutoFactory and VerifyNPC("Core")
-  end
+  RunService.Stepped:Connect(Module.requestClick)
   
-  local function VerifyRaidPirate(aaa)
-    if aaa then return ((tick() - PirateTime) <= 10) end
-    return AutoPiratesSea and ((tick() - PirateTime) <= 10)
-  end
-  
-  return ({
-    VerifyFactory = VerifyFactory,
-    VerifyRaidPirate = VerifyRaidPirate
-  })
-end
-local function GetNear()
-  local Dist, PlayerNear, PlayerPos = math.huge
-  for _,Player1 in pairs(Players:GetPlayers()) do
-    if Player1 ~= Player then
-      local plrPP1 = Player1.Character and Player1.Character.PrimaryPart
-      local plrPP2 = Player.Character and Player.Character.PrimaryPart
-      
-      if plrPP1 and plrPP2 and (plrPP1.Position - plrPP2.Position).Magnitude <= Dist then
-        PlayerPos, PlayerNear, Dist = plrPP1.Position, Player1, (plrPP1.Position - plrPP2.Position).Magnitude
-      end
-    end
-  end
-  if PlayerNear then
-    NearestPlayer = {
-      Player = PlayerNear,
-      Character = PlayerNear.Character,
-      RootPart = (PlayerNear.Character and PlayerNear.Character.PrimaryPart or PlayerNear.Character)
-    }
-  else
-    NearestPlayer = false
-  end
-  if PlayerPos then
-    AimbotPlayerPos = PlayerPos
-  else
-    AimbotPlayerPos = false
-  end
-end
-local function Bypass()
-  local OldHook
-  OldHook = hookmetamethod(Player, "__newindex", function(self, Index, Value)
-    if tostring(self) == "Humanoid" and Index == "WalkSpeed" then
-      return OldHook(self, Index, WalkSpeedBypass or Value)
-    end
-    return OldHook(self, Index, Value)
-  end)
+  Module["TweenBlock"] = TweenBlock
+  Module["FarmCheck"] = FarmCheck
+  Module["Inventory"] = Inventory
+  Module["WaitPart"] = WaitChilds
+  Module.__index = Module
 end
 
-task.spawn(Bypass)
-task.spawn(RemoveEffects)
-task.spawn(DisableConsole)
-task.spawn(StopCameraShaker)
-RunService.Heartbeat:Connect(GetNear)
-RunService.Heartbeat:Connect(requestClick)
-
-return ({
-  GetEnemiesList = GetEnemiesList,
-  FireRemote = FireRemote,
-  ServerHop = ServerHop,
-  IsAlive = IsAlive,
-  VerifyNPC = VerifyNPC,
-  ActiveHaki = ActiveHaki,
-  GetEnemies = GetEnemies,
-  KillAura = KillAura,
-  BringNPC = BringNPC,
-  FastAttackFunc = FastAttackFunc,
-  BladeHitAttack = BladeHitAttack,
-  requestClick = requestClick,
-  PlayerClick = PlayerClick,
-  WaitPart = WaitPart,
-  TweenBlock = TweenBlock(),
-  AimBotPart = ActiveAimbot(),
-  FarmCheck = FarmCheck(),
-  Inventory = Inventory()
-})
+return Module
