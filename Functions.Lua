@@ -45,25 +45,21 @@ local Module do
   end
   
   function Module.GetEnemies(List)
-    local _Enemies = {}
-    for _,Enemie in pairs(List) do
-      local _Enemie = (ReplicatedStorage:FindFirstChild(Enemie) or Enemies:FindFirstChild(Enemie))
-      if Module.IsAlive(_Enemie) then
-        table.insert(_Enemies, _Enemie)
-      end
-    end
-    if #_Enemies > 0 then
-      local Distance, Enemie = math.huge
-      for _,_Enemie in pairs(_Enemies) do
-        local PP = _Enemie.PrimaryPart
-        local Mag = PP and Player:DistanceFromCharacter(PP.Position)
-        
-        if Mag and Mag < Distance then
-          Distance, Enemie = Mag, _Enemie
+    local Distance, Enemie = math.huge
+    for _,_Enemie in pairs(Module.GetEnemiesList()) do
+      if table.find(List, _Enemie.Name) then
+        if Module.IsAlive(_Enemie) then
+          local PPart = _Enemie and _Enemie.PrimaryPart
+          local Mag = PPart and Player:DistanceFromCharacter(PPart.Position)
+          
+          if Mag and Mag < 50 then return _Enemie end
+          if Mag and Mag <= Distance then
+            Distance, Enemie = Mag, _Enemie
+          end
         end
       end
-      return Enemie
     end
+    return Enemie
   end
   
   function Module.GetEnemiesList()
