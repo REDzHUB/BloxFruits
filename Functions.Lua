@@ -1,4 +1,4 @@
--- Ultima Atualização : terça-feira, 9 de abril de 2024 (BRT)
+-- Ultima Atualização : quarta-feira, 10 de abril de 2024 (BRT)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
@@ -298,13 +298,12 @@ local Module do
   
   local Inventory do
     Inventory = {}
-    
-    local _Inventory = require(WaitChilds(Player, "PlayerGui", "Main", "UIController", "Inventory"))
+    local _Inventory = WaitChilds(Player, "PlayerGui", "Main", "UIController", "Inventory")
     
     function Inventory.VerifyItem(IName, Type)
       Type = Type or "Sword"
       
-      for _,Item in pairs(_Inventory.Items) do
+      for _,Item in pairs(require(_Inventory).Items) do
         local details = Item.details
         if details.Type == Type then
           if details.Name == IName then
@@ -607,6 +606,8 @@ local Module do
   end)
   
   RunService.Stepped:Connect(Module.requestClick) -- auto attack aura
+  
+  Module.MaxLevel = 2550
   
   Module["Shop"] = Shop
   Module["TweenBlock"] = TweenBlock
