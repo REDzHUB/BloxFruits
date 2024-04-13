@@ -29,8 +29,8 @@ local CommF_ = WaitChilds(Remotes, "CommF_")
 
 local Module do
   Module = {}
-  
-  local AllEnemies = {}
+  Module.MaxLevel = 2550
+  Module.AllEnemies = {}
   
   function Module.IsAlive(Character) -- Check the life of the humanoid is > 0
     local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
@@ -149,11 +149,12 @@ local Module do
     end
   end
   
-  function Module.KillAura() -- Kill all nearest enemies
+  function Module.KillAura(Distance) -- Kill all nearest enemies
+    Distance = Distance or 1500
     for _,Enemie in pairs(Enemies:GetChildren()) do
       if Module.IsAlive(Enemie) then
         local PP = Enemie.PrimaryPart
-        if PP and Player:DistanceFromCharacter(PP.Position) < 1500 then
+        if PP and Player:DistanceFromCharacter(PP.Position) < Distance then
           PP.Size = Vector3.new(60, 60, 60)
           PP.CanCollide = false
           local Humanoid = Enemie:FindFirstChild("Humanoid")
@@ -606,8 +607,6 @@ local Module do
   end)
   
   RunService.Stepped:Connect(Module.requestClick) -- auto attack aura
-  
-  Module.MaxLevel = 2550
   
   Module["Shop"] = Shop
   Module["TweenBlock"] = TweenBlock
