@@ -1,4 +1,4 @@
--- Ultima Atualização : quarta-feira, 10 de abril de 2024 (BRT)
+-- Ultima Atualização : sábado, 13 de abril de 2024 (BRT)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
@@ -30,7 +30,6 @@ local CommF_ = WaitChilds(Remotes, "CommF_")
 local Module do
   Module = {}
   Module.MaxLevel = 2550
-  Module.AllEnemies = {}
   
   function Module.IsAlive(Character) -- Check the life of the humanoid is > 0
     local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
