@@ -1,4 +1,4 @@
--- Ultima Atualização : sábado, 13 de abril de 2024 (BRT)
+-- Ultima Atualização : sábado, 14 de abril de 2024 (BRT)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
@@ -577,11 +577,11 @@ local Module do
             if AimBotPart then
               if AutoFarmSea or AutoWoodPlanks or Sea2_AutoFarmSea then
                 if SeaAimBotSkill then
-                  return OldHook(self, AimbotPos, V2, ...)
+                  return OldHook(self, AimBotPart, V2, ...)
                 end
               elseif AutoFarmMastery then
                 if AimBotSkill then
-                  return OldHook(self, AimbotPos, V2, ...)
+                  return OldHook(self, AimBotPart, V2, ...)
                 end
               end
             end
