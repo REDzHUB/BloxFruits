@@ -1,4 +1,4 @@
--- Ultima Atualização : sábado, 14 de abril de 2024 (BRT)
+-- Ultima Atualização : domingo, 14 de abril de 2024 (BRT)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
