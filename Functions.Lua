@@ -1,4 +1,4 @@
--- Ultima Atualização : domingo, 14 de abril de 2024 (BRT)
+-- Ultima Atualização : sábado, 20 de abril de 2024 (BRT)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
@@ -23,6 +23,7 @@ local CFWReplicated = WaitChilds(ReplicatedStorage, "CombatFramework")
 local RigLib = WaitChilds(CFWReplicated, "RigLib")
 
 local Enemies = WaitChilds(workspace, "Enemies")
+local NPCs = WaitChilds(workspace, "NPCs")
 
 local Remotes = WaitChilds(ReplicatedStorage, "Remotes")
 local CommF_ = WaitChilds(Remotes, "CommF_")
@@ -30,37 +31,56 @@ local CommF_ = WaitChilds(Remotes, "CommF_")
 local Module do
   Module = {}
   Module.MaxLevel = 2550
+  Module.NPCs = {}
+  Module.EnemySpawns = {}
   
   function Module.IsAlive(Character) -- Check the life of the humanoid is > 0
     local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
-    return Humanoid and Humanoid.Health > 0
+    return (Humanoid and Humanoid.Health > 0)
   end
   
   function Module.FireRemote(...) -- Invoke server CommF_ Remote
     return CommF_:InvokeServer(...)
   end
   
-  function Module.VerifyNPC(EnemieName) -- Verify Enemie from name
-    local Enemie = (ReplicatedStorage:FindFirstChild(EnemieName) or Enemies:FindFirstChild(EnemieName))
-    if Module.IsAlive(Enemie) then return Enemie end
+  function Module.VerifyNPC(EName) -- Verify Enemie from name
+    if Module.EnemySpawns[EName] then
+      for path, Position in next, Module.EnemySpawns[EName] do
+        if path:GetAttribute("Active") then
+          return Position
+        end
+      end
+    else
+      local Enemie = Enemies:FindFirstChild(EName) or ReplicatedStorage:FindFirstChild(EName)
+      return (Module.IsAlive(Enemie) and Enemie)
+    end
   end
   
-  function Module.GetEnemies(List) -- Get Enemies from name. Example : Module.GetEnemies({"Cake Prince", "Dough King"})
-    local Distance, Enemie = math.huge
-    for _,_Enemie in pairs(Module.GetEnemiesList()) do
-      if table.find(List, _Enemie.Name) then
-        if Module.IsAlive(_Enemie) then
-          local PPart = _Enemie and _Enemie.PrimaryPart
-          local Mag = PPart and Player:DistanceFromCharacter(PPart.Position)
+  function Module.GetEnemies(List, OnlyOne) -- Get Enemies from name
+    if OnlyOne then
+      local Name = List
+      if type(List) == "table" then Name = List[1] end
+      local Enemie = Enemies:FindFirstChild(Name) or ReplicatedStorage:FindFirstChild(Name)
+      return Module.IsAlive(Enemie) and Enemie
+    else
+      local Distance, Enemie = math.huge
+      for _,_Enemie in next, Enemies:GetChildren() do
+        if table.find(List, _Enemie.Name) and Module.IsAlive(_Enemie) then
+          return _Enemie
+        end
+      end
+      for _,_Enemie in next, ReplicatedStorage:GetChildren() do
+        if table.find(List, _Enemie.Name) and Module.IsAlive(_Enemie) then
+          local PrimaryPart = _Enemie.PrimaryPart
+          local Mag = PrimaryPart and Player:DistanceFromCharacter(PrimaryPart.Position)
           
-          if Mag and Mag < 50 then return _Enemie end
           if Mag and Mag <= Distance then
             Distance, Enemie = Mag, _Enemie
           end
         end
       end
+      return Enemie
     end
-    return Enemie
   end
   
   function Module.GetEnemiesList() -- Get all enemies List ( workspace / ReplicatedStorage )
@@ -142,7 +162,7 @@ local Module do
   
   function Module.ActiveHaki() -- Enable Buso Haki
     if AutoHaki then
-      if (Player.Character and not Player.Character:FindFirstChild("HasBuso")) then
+      if (Module.IsAlive(Player.Character) and not Player.Character:FindFirstChild("HasBuso")) then
         Module.FireRemote("Buso")
       end
     end
@@ -165,6 +185,21 @@ local Module do
         end
       end
     end
+  end
+  
+  function Module.GetNPC(NpcName)
+    if Module.NPCs[NpcName] then return Module.NPCs[NpcName] end
+    for _,table in next, getreg() do
+      if type(table) == "table" then
+        for _,npc in next, table do
+          if typeof(npc) == "Instance" and npc.Name == NpcName then
+            Module.NPCs[NpcName] = npc
+            return npc
+          end
+        end
+      end
+    end
+    return false
   end
   
   local FastAttack do
@@ -200,10 +235,8 @@ local Module do
       pcall(function()
         local AC = CombatLib.activeController
         if AC.blades and AC.blades[1] then
-          local plrChar = Player.Character
-          
-          if plrChar then
-            local BladeHits = getBladeHits(plrChar, AC.blades, 60)
+          if Module.IsAlive(Player.Character) then
+            local BladeHits = getBladeHits(Player.Character, AC.blades, 60)
             
             if #BladeHits > 0 then
               local Val1 = getupvalue(AC.attack, 5) -- A
@@ -223,7 +256,7 @@ local Module do
               setupvalue(AC.attack, 4, Val3)
               setupvalue(AC.attack, 7, Val4)
               
-              local Blade = (Player.Character and Player.Character:FindFirstChildOfClass("Tool"))
+              local Blade = (Player.Character:FindFirstChildOfClass("Tool"))
               if Blade then
                 AC.animator.anims.basic[1]:Play(0.01, 0.01, 0.01)
                 RigControllerEvent:FireServer("weaponChange", Blade.Name)
@@ -238,7 +271,7 @@ local Module do
     
     local Debounce
     function Module.PlayerClick()
-      local Delay = AutoClickDelay or 0.1
+      local Delay = AutoClickDelay or 0.125
       if not Debounce or (tick() - Debounce) >= Delay then
         task.spawn(Module.BladeHitAttack)
         Debounce = tick()
@@ -247,15 +280,14 @@ local Module do
     
     function Module.requestClick()
       if AutoClick and ClickRequest then
-        if not Module.IsAlive(Player.Character) or not Player.Character:FindFirstChildOfClass("Tool") then return end
-        
-        for _,Enemie in pairs(Enemies:GetChildren()) do
-          if Module.IsAlive(Enemie) then
-            local EnemiePP = Enemie.PrimaryPart
-            
-            if EnemiePP and Player:DistanceFromCharacter(EnemiePP.Position) < 60 then
-              Module.PlayerClick()
-              break
+        if Module.IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool") then
+          for _,Enemie in pairs(Enemies:GetChildren()) do
+            if Module.IsAlive(Enemie) then
+              local EnemiePP = Enemie.PrimaryPart
+              if EnemiePP and Player:DistanceFromCharacter(EnemiePP.Position) < 60 then
+                Module.PlayerClick()
+                break
+              end
             end
           end
         end
@@ -475,6 +507,26 @@ local Module do
     ]==]
   end
   
+  task.spawn(function()
+    local EnemySpawns = WaitChilds(workspace, "_WorldOrigin", "EnemySpawns")
+    local EnemyList = Module.EnemySpawns
+    
+    local function CheckEnemieName(string)
+      if string:find("Lv. ") then
+        return string:gsub(" %pLv. %d+%p", "")
+      end
+      return string
+    end
+    
+    for _,Enemy in next, EnemySpawns:GetChildren() do
+      if Enemy:GetAttribute("DisplayName") then
+        local EName = CheckEnemieName(Enemy.Name)
+        if not EnemyList[EName] then EnemyList[EName] = {} end
+        EnemyList[EName][Enemy] = CFrame.new(Enemy.Position + Vector3.new(0, 30, 0))
+      end
+    end
+  end)
+  
   task.spawn(function() -- Remove Particles & Effects
     local Particles = require(WaitChilds(CombatFramework, "Particle"))
     local RigLeg = require(WaitChilds(ReplicatedStorage, "CombatFramework", "RigLib"))
@@ -539,6 +591,7 @@ local Module do
   
   task.spawn(function() -- Aim Bot
     local AimBotPart, NearestPlayer
+    local MouseModule = WaitChilds(ReplicatedStorage, "Mouse")
     
     task.spawn(function() -- Get Nearest Player
       local function CheckTeam(plr)
@@ -561,11 +614,10 @@ local Module do
             end
           end
         end
-        
         NearestPlayer = Nearest
       end
       
-      RunService.Heartbeat:Connect(GetNear)
+      RunService.RenderStepped:Connect(GetNear)
     end)
     
     task.spawn(function() -- Enable Aim Bot
@@ -577,11 +629,11 @@ local Module do
             if AimBotPart then
               if AutoFarmSea or AutoWoodPlanks or Sea2_AutoFarmSea then
                 if SeaAimBotSkill then
-                  return OldHook(self, AimBotPart, V2, ...)
+                  return OldHook(self, AimBotPart[2], V2, ...)
                 end
               elseif AutoFarmMastery then
                 if AimBotSkill then
-                  return OldHook(self, AimBotPart, V2, ...)
+                  return OldHook(self, AimBotPart[2], V2, ...)
                 end
               end
             end
@@ -600,12 +652,17 @@ local Module do
       end)
     end)
     
-    Module["AimBotPart"] = function(part)
-      AimBotPart = part.Position
+    Module["AimBotPart"] = function(RootPart)
+      local Mouse = require(MouseModule)
+      Mouse.Hit = CFrame.new(RootPart.Position)
+      Mouse.Target = RootPart
+      AimBotPart = ({ RootPart, RootPart.Position })
     end
   end)
   
-  RunService.Stepped:Connect(Module.requestClick) -- auto attack aura
+  task.spawn(function()
+    while task.wait() do Module.requestClick() end -- auto click aura
+  end)
   
   Module["Shop"] = Shop
   Module["TweenBlock"] = TweenBlock
@@ -613,6 +670,7 @@ local Module do
   Module["Inventory"] = Inventory
   Module["WaitPart"] = WaitChilds
   Module.__index = Module
+  table.insert(Module, Module)
 end
 
 return Module
