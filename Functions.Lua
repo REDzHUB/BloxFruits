@@ -1,4 +1,4 @@
--- Ultima Atualização : sábado, 20 de abril de 2024 (BRT)
+-- Ultima Atualização : Domingo, 14 de abril de 2024 (BRT)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
@@ -57,13 +57,13 @@ local Module do
   end
   
   function Module.GetEnemies(List, OnlyOne) -- Get Enemies from name
-    if OnlyOne then
+    if OnlyOne and type(OnlyOne) == "boolean" then
       local Name = List
       if type(List) == "table" then Name = List[1] end
       local Enemie = Enemies:FindFirstChild(Name) or ReplicatedStorage:FindFirstChild(Name)
       return Module.IsAlive(Enemie) and Enemie
     else
-      local Distance, Enemie = math.huge
+      local Distance, Enemie = (OnlyOne or math.huge)
       for _,_Enemie in next, Enemies:GetChildren() do
         if table.find(List, _Enemie.Name) and Module.IsAlive(_Enemie) then
           return _Enemie
