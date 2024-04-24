@@ -1,4 +1,4 @@
--- Ultima Atualização : Domingo, 14 de abril de 2024 (BRT)
+-- Ultima Atualização : quarta-feira, 24 de abril de 2024 (BRT)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
@@ -56,30 +56,33 @@ local Module do
     end
   end
   
-  function Module.GetEnemies(List, OnlyOne) -- Get Enemies from name
-    if OnlyOne and type(OnlyOne) == "boolean" then
-      local Name = List
-      if type(List) == "table" then Name = List[1] end
-      local Enemie = Enemies:FindFirstChild(Name) or ReplicatedStorage:FindFirstChild(Name)
-      return Module.IsAlive(Enemie) and Enemie
-    else
-      local Distance, Enemie = (OnlyOne or math.huge)
-      for _,_Enemie in next, Enemies:GetChildren() do
-        if table.find(List, _Enemie.Name) and Module.IsAlive(_Enemie) then
-          return _Enemie
-        end
-      end
-      for _,_Enemie in next, ReplicatedStorage:GetChildren() do
-        if table.find(List, _Enemie.Name) and Module.IsAlive(_Enemie) then
-          local PrimaryPart = _Enemie.PrimaryPart
-          local Mag = PrimaryPart and Player:DistanceFromCharacter(PrimaryPart.Position)
+  function Module.GetEnemies(List, aaa) -- Get Enemies from name
+    if not aaa then
+      local Distance, Enemie = math.huge
+      for _,E in next, Enemies:GetChildren() do
+        if table.find(List, E.Name) and Module.IsAlive(E) then
+          local PP = E.PrimaryPart
+          local Mag = PP and Player:DistanceFromCharacter(PP.Position)
           
-          if Mag and Mag <= Distance then
-            Distance, Enemie = Mag, _Enemie
+          if Mag and Mag < 100 then
+            return E
+          elseif Mag < Distance then
+            Distance, Enemie = Mag, E
           end
         end
       end
-      return Enemie
+      if Enemie then
+        return Enemie
+      else
+        for _,E in next, ReplicatedStorage:GetChildren() do
+          if table.find(List, E.Name) and Module.IsAlive(E) then
+            return E
+          end
+        end
+      end
+    else
+      local Enemie = Enemies:FindFirstChild(List[1]) or ReplicatedStorage:FindFirstChild(List[1])
+      return Module.IsAlive(Enemie) and Enemie
     end
   end
   
@@ -177,10 +180,7 @@ local Module do
           PP.Size = Vector3.new(60, 60, 60)
           PP.CanCollide = false
           local Humanoid = Enemie:FindFirstChild("Humanoid")
-          if Humanoid then
-            Humanoid:ChangeState(15)
-            Humanoid.Health = 0
-          end
+          if Humanoid then Humanoid:ChangeState(15) Humanoid.Health = 0 end
           sethiddenproperty(Player, "SimulationRadius", math.huge)
         end
       end
@@ -303,7 +303,7 @@ local Module do
     task.spawn(function()
       local LastTick
       
-      while task.wait(0.5) do
+      while task.wait(1) do
         for _,Enemie in pairs(Module.GetEnemiesList()) do
           if Module.IsAlive(Enemie) then
             if Enemie.Name ~= "rip_indra True Form" then
@@ -361,6 +361,17 @@ local Module do
         return Item.Count
       end
       return 0
+    end
+    
+    function Inventory.GetUnlockedItems()
+      local AllItems = {}
+      for _,item in pairs(require(_Inventory).Items) do
+        local details = item.details
+        if details and details.Name then
+          AllItems[details.Name] = details
+        end
+      end
+      return AllItems
     end
   end
   
@@ -456,6 +467,7 @@ local Module do
         {"Buy Geppo", {"BuyHaki", "Geppo"}},
         {"Buy Buso", {"BuyHaki", "Buso"}},
         {"Buy Soru", {"BuyHaki", "Soru"}},
+        {"Buy Ken", {"KenTalk", "Buy"}}
       }},
       {"Sword", {
         {"Buy Katana", {"BuyItem", "Katana"}},
