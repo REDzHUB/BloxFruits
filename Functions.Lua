@@ -1,4 +1,4 @@
--- Ultima Atualização : quarta-feira, 24 de abril de 2024 (BRT)
+-- Ultima Atualização : sexta-feira, 26 de abril de 2024 (BRT)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
@@ -57,8 +57,8 @@ local Module do
   end
   
   function Module.GetEnemies(List, aaa) -- Get Enemies from name
-    if not aaa then
-      local Distance, Enemie = math.huge
+    if not aaa or type(aaa) == "number" then
+      local Distance, Enemie = aaa or math.huge
       for _,E in next, Enemies:GetChildren() do
         if table.find(List, E.Name) and Module.IsAlive(E) then
           local PP = E.PrimaryPart
@@ -280,13 +280,16 @@ local Module do
     
     function Module.requestClick()
       if AutoClick and ClickRequest then
-        if Module.IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool") then
-          for _,Enemie in pairs(Enemies:GetChildren()) do
-            if Module.IsAlive(Enemie) then
-              local EnemiePP = Enemie.PrimaryPart
-              if EnemiePP and Player:DistanceFromCharacter(EnemiePP.Position) < 60 then
-                Module.PlayerClick()
-                break
+        local Delay = AutoClickDelay or 0.125
+        if not Debounce or (tick() - Debounce) >= Delay then
+          if Module.IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool") then
+            for _,Enemie in pairs(Enemies:GetChildren()) do
+              if Module.IsAlive(Enemie) then
+                local EnemiePP = Enemie.PrimaryPart
+                if EnemiePP and Player:DistanceFromCharacter(EnemiePP.Position) < 60 then
+                  Module.PlayerClick()
+                  break
+                end
               end
             end
           end
@@ -672,9 +675,7 @@ local Module do
     end
   end)
   
-  task.spawn(function()
-    while task.wait() do Module.requestClick() end -- auto click aura
-  end)
+  RunService.Heartbeat:Connect(Module.requestClick)
   
   Module["Shop"] = Shop
   Module["TweenBlock"] = TweenBlock
