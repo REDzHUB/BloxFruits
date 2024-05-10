@@ -1,4 +1,4 @@
--- Ultima Atualização : sexta-feira, 26 de abril de 2024 (BRT)
+-- Ultima Atualização : quinta-feira, 9 de maio de 2024 (BRT)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
@@ -271,8 +271,8 @@ local Module do
     
     local Debounce
     function Module.PlayerClick()
-      local Delay = AutoClickDelay or 0.125
-      if not Debounce or (tick() - Debounce) >= Delay then
+      local Delay = (AutoClickDelay or 0.125)
+      if not Debounce or (tick() - Debounce) >= math.clamp(Delay, 0.125, 1) then
         task.spawn(Module.BladeHitAttack)
         Debounce = tick()
       end
@@ -280,16 +280,13 @@ local Module do
     
     function Module.requestClick()
       if AutoClick and ClickRequest then
-        local Delay = AutoClickDelay or 0.125
-        if not Debounce or (tick() - Debounce) >= Delay then
-          if Module.IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool") then
-            for _,Enemie in pairs(Enemies:GetChildren()) do
-              if Module.IsAlive(Enemie) then
-                local EnemiePP = Enemie.PrimaryPart
-                if EnemiePP and Player:DistanceFromCharacter(EnemiePP.Position) < 60 then
-                  Module.PlayerClick()
-                  break
-                end
+        if Module.IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool") then
+          for _,Enemie in pairs(Enemies:GetChildren()) do
+            if Module.IsAlive(Enemie) then
+              local EnemiePP = Enemie.PrimaryPart
+              if EnemiePP and Player:DistanceFromCharacter(EnemiePP.Position) < 60 then
+                Module.PlayerClick()
+                break
               end
             end
           end
@@ -397,19 +394,11 @@ local Module do
       BlockFind:Destroy()
     end
     
+    local OnStop
     local function VerifyTP()
-      if not Block or Block.Parent ~= workspace then
-        if Velocity then
-          Velocity:Destroy()
-        end
-        if Connection then
-          Connection:Disconnect()
-        end
-        return
-      end
-      
-      local plrChar = Player.Character
-      if OnFarm then
+      if not Block then return end
+      if Module.IsAlive(Player.Character) and OnFarm then
+        local plrChar = Player.Character
         local plrPP = plrChar and plrChar.PrimaryPart
         
         if plrPP then
@@ -423,23 +412,30 @@ local Module do
           end
         end
         
-        if plrChar then
-          if plrChar:FindFirstChild("Stun") and plrChar.Stun.Value ~= 0 then
-            plrChar.Stun.Value = 0
-          end
-          if plrChar:FindFirstChild("Busy") and plrChar.Busy.Value then
-            plrChar.Busy.Value = false
-          end
+        if plrChar:FindFirstChild("Stun") and plrChar.Stun.Value ~= 0 then
+          plrChar.Stun.Value = 0
+        end
+        if plrChar:FindFirstChild("Busy") and plrChar.Busy.Value then
+          plrChar.Busy.Value = false
+        end
+        if not OnStop then
           for _,Part in pairs(plrChar:GetChildren()) do
             if Part:IsA("BasePart") and Part.CanCollide then
               Part.CanCollide = false
             end
           end
+          OnStop = true
         end
-      else
-        if Velocity and Velocity.Parent then
-          Velocity.Parent = nil
+      elseif Velocity and Velocity.Parent then
+        if OnStop and Player.Character then
+          for _,Part in pairs(Player.Character:GetChildren()) do
+            if Part:IsA("BasePart") and Part.CanCollide then
+              Part.CanCollide = true
+            end
+          end
+          OnStop = false
         end
+        Velocity.Parent = nil
       end
     end
     
@@ -543,31 +539,30 @@ local Module do
   end)
   
   task.spawn(function() -- Remove Particles & Effects
-    local Particles = require(WaitChilds(CombatFramework, "Particle"))
-    local RigLeg = require(WaitChilds(ReplicatedStorage, "CombatFramework", "RigLib"))
+    -- local Particles = require(WaitChilds(CombatFramework, "Particle"))
+    -- local RigLeg = require(WaitChilds(ReplicatedStorage, "CombatFramework", "RigLib"))
     local DeathM = require(WaitChilds(ReplicatedStorage, "Effect", "Container", "Death"))
     local CameraShaker = require(WaitChilds(ReplicatedStorage, "Util", "CameraShaker"))
     
     CameraShaker:Stop()
     hookfunction(DeathM, function()end)
     
-    local shared = {}
-    if not shared.orl then shared.orl = RigLeg.wrapAttackAnimationAsync end
-    if not shared.cpc then shared.cpc = Particles.play end
-    
-    RigLeg.wrapAttackAnimationAsync = function(Val1, Val2, Val3, Val4, func)
-      local Hits = RigLeg.getBladeHits(Val2, Val3, Val4)
-      if Hits then
-        Particles.play = function()end
-        Val1:Play(0.01, 0.01, 0.01)
-        func(Hits)
-        Particles.play = shared.cpc
-        task.wait(Val1.length * 0.5)
-        Val1:Stop()
-      else
-        Val1:Play()
-      end
-    end
+    -- local shared = {}
+    -- if not shared.orl then shared.orl = RigLeg.wrapAttackAnimationAsync end
+    -- if not shared.cpc then shared.cpc = Particles.play end
+    -- RigLeg.wrapAttackAnimationAsync = function(Val1, Val2, Val3, Val4, func)
+    --   local Hits = RigLeg.getBladeHits(Val2, Val3, Val4)
+    --   if Hits then
+    --     Particles.play = function()end
+    --     Val1:Play(0.01, 0.01, 0.01)
+    --     func(Hits)
+    --     Particles.play = shared.cpc
+    --     task.wait(Val1.length * 0.5)
+    --     Val1:Stop()
+    --   else
+    --     Val1:Play()
+    --   end
+    -- end
   end)
   
   task.spawn(function() -- Bypass Walk Speed
@@ -612,7 +607,7 @@ local Module do
       local function CheckTeam(plr)
         return tostring(plr.Team) == "Pirates" or (tostring(plr.Team) ~= tostring(Player.Team))
       end
-      
+     
       local function GetNear()
         local Distance, Nearest = math.huge, false
         for _,plr in pairs(Players:GetPlayers()) do
@@ -632,7 +627,7 @@ local Module do
         NearestPlayer = Nearest
       end
       
-      RunService.RenderStepped:Connect(GetNear)
+      RunService.Heartbeat:Connect(GetNear)
     end)
     
     task.spawn(function() -- Enable Aim Bot
