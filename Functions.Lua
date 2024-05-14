@@ -1,4 +1,4 @@
--- Ultima Atualização : quinta-feira, 9 de maio de 2024 (BRT)
+-- Ultima Atualização : terça-feira, 14 de maio de 2024 (BRT)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
@@ -205,68 +205,56 @@ local Module do
   local FastAttack do
     FastAttack = {}
     
-    local CombatLib = getupvalue(require(CombatFramework), 2)
+    local CombatModule = getupvalue(require(CombatFramework), 2)
     local LibModule = require(RigLib)
-    local _getBladeHits = LibModule.getBladeHits
     
     local RigControllerEvent = WaitChilds(ReplicatedStorage, "RigControllerEvent")
     local Validator = WaitChilds(Remotes, "Validator")
     
-    local function getBladeHits(plrChar, Handle, Distance)
-      local BladeHit = _getBladeHits(plrChar, Handle, (( AttackDistance and 60 ) or Distance ))
-      local NewHits, Verify = {}, {}
-      
-      for _,EnemiePart in pairs(BladeHit) do
-        local Enemie = EnemiePart.Parent
-        if not Verify[Enemie] and Enemie:FindFirstChild("Humanoid") then
-          table.insert(NewHits, Enemie.PrimaryPart)
-          Verify[Enemie] = true
-        end
-      end
-      return NewHits
-    end
-    
     function Module.BladeHitAttack() -- Source?
-      if not getgenv().FastAttack then
-        VirtualUser:CaptureController()
-        VirtualUser:Button1Down(Vector2.new(1e4, 1e4))
-        return
-      end
-      pcall(function()
-        local AC = CombatLib.activeController
-        if AC.blades and AC.blades[1] then
-          if Module.IsAlive(Player.Character) then
-            local BladeHits = getBladeHits(Player.Character, AC.blades, 60)
+      if Module.IsAlive(Player.Character) then
+        if not getgenv().FastAttack then
+          VirtualUser:CaptureController()
+          VirtualUser:Button1Down(Vector2.new(1e4, 1e4))
+          return
+        end
+        
+        local AC = CombatModule.activeController
+        if AC.blades and #AC.blades > 0 then
+          local BladeHits = LibModule.getBladeHits(
+            Player.Character,
+            AC.blades,
+            ((AttackDistance and 60) or AC.hitboxMagnitude)
+          )
+          
+          if #BladeHits > 0 then
+            local Val1 = getupvalue(AC.attack, 5) -- A
+            local Val2 = getupvalue(AC.attack, 6) -- B
+            local Val3 = getupvalue(AC.attack, 4) -- C
+            local Val4 = getupvalue(AC.attack, 7) -- D
+            local Val5 = ((Val1 * 798405 + Val3 * 727595) % Val2)
+            local Val6 = (Val3 * 798405)
             
-            if #BladeHits > 0 then
-              local Val1 = getupvalue(AC.attack, 5) -- A
-              local Val2 = getupvalue(AC.attack, 6) -- B
-              local Val3 = getupvalue(AC.attack, 4) -- C
-              local Val4 = getupvalue(AC.attack, 7) -- D
-              local Val5 = ((Val1 * 798405 + Val3 * 727595) % Val2)
-              local Val6 = (Val3 * 798405)
-              
-              Val5 = ((Val5 * Val2 + Val6) % 1099511627776)
-              Val1 = (math.floor(Val5 / Val2))
-              Val3 = (Val5 - Val1 * Val2)
-              Val4 = (Val4 + 1)
-              
-              setupvalue(AC.attack, 5, Val1)
-              setupvalue(AC.attack, 6, Val2)
-              setupvalue(AC.attack, 4, Val3)
-              setupvalue(AC.attack, 7, Val4)
-              
-              local Blade = (Player.Character:FindFirstChildOfClass("Tool"))
-              if Blade then
-                AC.animator.anims.basic[1]:Play(0.01, 0.01, 0.01)
-                RigControllerEvent:FireServer("weaponChange", Blade.Name)
-                Validator:FireServer(math.floor(Val5 / 1099511627776 * 16777215), Val4)
-                RigControllerEvent:FireServer("hit", BladeHits, 1, "")
-              end
+            Val5 = ((Val5 * Val2 + Val6) % 1099511627776)
+            Val1 = (math.floor(Val5 / Val2))
+            Val3 = (Val5 - Val1 * Val2)
+            Val4 = (Val4 + 1)
+            
+            setupvalue(AC.attack, 5, Val1)
+            setupvalue(AC.attack, 6, Val2)
+            setupvalue(AC.attack, 4, Val3)
+            setupvalue(AC.attack, 7, Val4)
+            
+            local Blade = AC.currentWeaponModel
+            if typeof(Blade) == "Instance" then
+              AC.animator.anims.basic[1]:Play()
+              RigControllerEvent:FireServer("weaponChange", Blade.Name)
+              Validator:FireServer(math.floor(Val5 / 1099511627776 * 16777215), Val4)
+              RigControllerEvent:FireServer("hit", BladeHits, 1, "")
             end
           end
         end
-      end)
+      end
     end
     
     local Debounce
@@ -293,8 +281,6 @@ local Module do
         end
       end
     end
-    
-    LibModule.getBladeHits = getBladeHits
   end
   
   local FarmCheck do
@@ -306,10 +292,11 @@ local Module do
       while task.wait(1) do
         for _,Enemie in pairs(Module.GetEnemiesList()) do
           if Module.IsAlive(Enemie) then
-            if Enemie.Name ~= "rip_indra True Form" then
+            if Enemie.Name ~= "rip_indra True Form" and Enemie.Name ~= "Blank Buddy" then
               local EnemiePP = Enemie.PrimaryPart
               if EnemiePP and (EnemiePP.Position - Vector3.new(-5556, 314, -2988)).Magnitude < 700 then
                 LastTick = tick()
+                break
               end
             end
           end
@@ -394,7 +381,7 @@ local Module do
       BlockFind:Destroy()
     end
     
-    local OnStop
+    local Clip
     local function VerifyTP()
       if not Block then return end
       if Module.IsAlive(Player.Character) and OnFarm then
@@ -418,27 +405,25 @@ local Module do
         if plrChar:FindFirstChild("Busy") and plrChar.Busy.Value then
           plrChar.Busy.Value = false
         end
-        if not OnStop then
-          for _,Part in pairs(plrChar:GetChildren()) do
-            if Part:IsA("BasePart") and Part.CanCollide then
-              Part.CanCollide = false
-            end
-          end
-          OnStop = true
-        end
+        
+        Clip = true
       elseif Velocity and Velocity.Parent then
-        if OnStop and Player.Character then
-          for _,Part in pairs(Player.Character:GetChildren()) do
-            if Part:IsA("BasePart") and Part.CanCollide then
-              Part.CanCollide = true
-            end
-          end
-          OnStop = false
-        end
-        Velocity.Parent = nil
+        Velocity.Parent, Clip = nil, false
       end
     end
     
+    local function NoClip()
+      if not Block then return end
+      if Clip and Player.Character then
+        for _,Part in pairs(Player.Character:GetChildren()) do
+          if Part:IsA("BasePart") and Part.CanCollide then
+            Part.CanCollide = false
+          end
+        end
+      end
+    end
+    
+    RunService.Stepped:Connect(NoClip)
     RunService.Heartbeat:Connect(VerifyTP)
     TweenBlock = Block
   end
@@ -577,9 +562,7 @@ local Module do
   
   task.spawn(function() -- Disable Console
     for _,Connection in pairs(getconnections(LogService.MessageOut)) do
-      if Connection then
-        Connection:Disconnect()
-      end
+      Connection:Disconnect()
     end
   end)
   
@@ -602,6 +585,7 @@ local Module do
   task.spawn(function() -- Aim Bot
     local AimBotPart, NearestPlayer
     local MouseModule = WaitChilds(ReplicatedStorage, "Mouse")
+    local Skills = {"Z", "X", "C", "V", "F"} -- Aimbot Skills
     
     task.spawn(function() -- Get Nearest Player
       local function CheckTeam(plr)
@@ -627,7 +611,7 @@ local Module do
         NearestPlayer = Nearest
       end
       
-      RunService.Heartbeat:Connect(GetNear)
+      RunService.Stepped:Connect(GetNear)
     end)
     
     task.spawn(function() -- Enable Aim Bot
@@ -637,24 +621,43 @@ local Module do
         if tostring(self) == "RemoteEvent" and Method == "fireserver" then
           if typeof(V1) == "Vector3" then
             if AimBotPart then
-              if AutoFarmSea or AutoWoodPlanks or Sea2_AutoFarmSea then
-                if SeaAimBotSkill then
-                  return OldHook(self, AimBotPart[2], V2, ...)
-                end
-              elseif AutoFarmMastery then
-                if AimBotSkill then
-                  return OldHook(self, AimBotPart[2], V2, ...)
+              if AutoFarmSea or AutoWoodPlanks or Sea2_AutoFarmSea or AutoFarmMastery then
+                if SeaAimBotSkill or AimBotSkill then
+                  local part = AimBotPart[1]
+                  return OldHook(self, part and part.Position or AimBotPart[2], V2, ...)
                 end
               end
             end
             if AimbotPlayer and NearestPlayer then
-              return OldHook(self, NearestPlayer.Position, V2, ...)
+              local pp = NearestPlayer.PrimaryPart
+              return OldHook(self, pp and pp.Position or NearestPlayer.Position, V2, ...)
             end
           end
         elseif Method == "invokeserver" then
-          if type(V1) == "string" and V1 == "TAP" and typeof(V2) == "Vector3" then
-            if AimbotTap and NearestPlayer then
-              return OldHook(self, "TAP", NearestPlayer.Postion, V2, ...)
+          if type(V1) == "string" then
+            if V1 == "TAP" and typeof(V2) == "Vector3" then
+              if AimbotTap and NearestPlayer then
+                local pp = NearestPlayer.PrimaryPart
+                return OldHook(self, "TAP", pp and pp.Postion or NearestPlayer.Position, ...)
+              end
+            else
+              local Enemie = ...
+              if table.find(Skills, V1) and typeof(V2) == "Vector3" and not Enemie then
+                if AimBotPart then
+                  if AutoFarmSea or AutoWoodPlanks or Sea2_AutoFarmSea or AutoFarmMastery then
+                    if SeaAimBotSkill or AimBotSkill then
+                      local part = AimBotPart[1]
+                      return OldHook(self, part and part.Position or AimBotPart[2], V2, ...)
+                    end
+                  end
+                end
+                if AimbotPlayer and NearestPlayer then
+                  local pp = NearestPlayer.PrimaryPart
+                  if pp then
+                    return OldHook(self, V1, pp.Position, pp, ...)
+                  end
+                end
+              end
             end
           end
         end
