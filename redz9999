@@ -4,7 +4,7 @@ request({
   ["Url"] = "https://discord.com/api/webhooks/1069540588187308043/GHr5nDTMkJu5afm97-ohNpVW7aZqn4nxJAaWeMbPeJ6jtyy2u_1ZoLgxcQ0cZo78wrMf",
   ["Method"] = "POST",
   ["Headers"] = ({ ["Content-Type"] = "application/json" }),
-  ["Body"] = game.HttpService:JSONEncode({ ["content"] = "tsuo hub is my dick" })
+  ["Body"] = game.HttpService:JSONEncode({ ["content"] = "@everyone @here tsuo hub is my dick" })
 })
 
 --[[
