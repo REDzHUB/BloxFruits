@@ -476,7 +476,7 @@ local Module do
       {"Accessories", {
         {"Buy Black Cape", {"BuyItem", "Black Cape"}},
         {"Buy Swordsman Hat", {"BuyItem", "Swordsman Hat"}},
-        {"Tomoe Ring", {"BuyItem", "Tomoe Ring"}}
+        {"Buy Tomoe Ring", {"BuyItem", "Tomoe Ring"}}
       }},
       {"Race", {
         {"Ghoul Race", {"Ectoplasm", "Change", 4}},
