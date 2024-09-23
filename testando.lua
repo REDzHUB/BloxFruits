@@ -302,7 +302,7 @@ local Module = {} do
         else
           local Tip = Settings.FarmTool
           for _,Tool in Player.Backpack:GetChildren() do
-            if Tool:IsA("Tool") and Tool.ToolTip == FarmTool then
+            if Tool:IsA("Tool") and Tool.ToolTip == Tip then
               self.Equipped = Tool
               Char:WaitForChild("Humanoid"):EquipTool(Tool)
             end
