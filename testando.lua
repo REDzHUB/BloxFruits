@@ -118,7 +118,7 @@ local Module = {} do
   end
   
   function Module.Rejoin()
-    task.spawn(TeleportService:TeleportToPlaceInstance, TeleportService, game.PlaceId, game.JobId, Player)
+    task.spawn(TeleportService.TeleportToPlaceInstance, TeleportService, game.PlaceId, game.JobId, Player)
   end
   
   function Module.IsAlive(Char)
@@ -433,7 +433,9 @@ local Module = {} do
     local CameraShaker = require(WaitChilds(ReplicatedStorage, "Util", "CameraShaker"))
     
     CameraShaker:Stop()
-    if hookfunction then hookfunction(DeathM, function()end) end
+    if hookfunction then
+      hookfunction(DeathM, function(...) return ... end)
+    end
   end)
   
   Module.TweenBlock = (function()
@@ -455,10 +457,10 @@ local Module = {} do
     velocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     velocity.Velocity = Vector3.new()
     
-    local steppped = nil
+    local stepped = nil
     local heartbeat = nil
     
-    steppped = Stepped:Connect(function()
+    stepped = Stepped:Connect(function()
       local Char = Player.Character
       if _ENV.OnFarm and velocity.Parent == Char then
         for _,Part in GetBaseParts(Char) do
@@ -471,7 +473,7 @@ local Module = {} do
     
     heartbeat = Heartbeat:Connect(function()
       if not block or not velocity then
-        return heartbeat:Disconnect(), steppped:Disconnect()
+        return heartbeat:Disconnect(), stepped:Disconnect()
       end
       
       local Char = Player.Character
