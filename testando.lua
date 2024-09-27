@@ -44,6 +44,8 @@ local Module = {} do
   
   local placeId = game.PlaceId
   
+  local SeaList = {"TravelMain", "TravelDressrosa", "TravelZou"}
+  
   Module.Sea = (placeId == 2753915549 and 1) or (placeId == 4442272183 and 2) or (placeId == 7449423635 and 3) or 0
   
   Module.SpawnedFruits = {}
@@ -111,6 +113,12 @@ local Module = {} do
     
     CachedBaseParts[Char] = baseParts
     return baseParts
+  end
+  
+  function Module.TravelTo(Sea)
+    if SeaList[Sea] then
+      Module.FireRemote(SeaList[Sea])
+    end
   end
   
   function Module.newCachedEnemy(Name, Enemy)
