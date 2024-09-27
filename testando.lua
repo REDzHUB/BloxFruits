@@ -38,6 +38,7 @@ end
 local Module = {} do
   local CachedBaseParts = {}
   local CachedEnemies = {}
+  local CachedBring = {}
   local CachedChars = {}
   local Items = {}
   
@@ -90,12 +91,10 @@ local Module = {} do
   
   function EnableBuso()
     local Char = Player.Character
-    if Settings.AutoBuso and Module:IsAlive(Char) and not Char:FindFirstChild("HasBuso") then
-      Module:FireRemote("Buso")
+    if Settings.AutoBuso and Module.IsAlive(Char) and not Char:FindFirstChild("HasBuso") then
+      Module.FireRemote("Buso")
     end
   end
-  
-
   
   local function GetBaseParts(Char)
     if CachedBaseParts[Char] then
@@ -118,11 +117,11 @@ local Module = {} do
     CachedEnemies[Name] = Enemy
   end
   
-  function Module:FireRemote(...)
-    return CommF:InvokeServer(...)
+  function Module.Rejoin()
+    task.spawn(TeleportService:TeleportToPlaceInstance, TeleportService, game.PlaceId, game.JobId, Player)
   end
   
-  function Module:IsAlive(Char)
+  function Module.IsAlive(Char)
     if CachedChars[Char] then
       return CachedChars[Char].Health > 0
     end
@@ -132,14 +131,12 @@ local Module = {} do
     return Hum and Hum.Health > 0
   end
   
-  function Module:IsFruit(Part)
-    return (Part.Name == "Fruit " or Part:GetAttribute("OriginalName")) and Part:FindFirstChild("Handle")
+  function Module.FireRemote(...)
+    return CommF:InvokeServer(...)
   end
   
-  function Module:Rejoin()
-    task.spawn(function()
-      TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player)
-    end)
+  function Module.IsFruit(Part)
+    return (Part.Name == "Fruit " or Part:GetAttribute("OriginalName")) and Part:FindFirstChild("Handle")
   end
   
   function Module:ServerHop(Region, MaxPlayers)
@@ -164,10 +161,51 @@ local Module = {} do
     return self.EnemySpawned[Name]
   end
   
-  function Module:GetAliveEnemy(Name)
+  function Module:GetClosestEnemy(Name)
     local CachedEnemy = CachedEnemies[Name]
     if CachedEnemy and self.IsAlive(CachedEnemy) then
       return CachedEnemy
+    end
+    
+    if not self.IsAlive(Player.Character) then
+      return nil
+    end
+    
+    local Target = Player.Character.WorldPivot.Position
+    local dist, near = math.huge, nil
+    
+    for _,Enemy in next, Enemies:GetChildren() do
+      if Enemy.Name == Name and self.IsAlive(Enemy) then
+        local Mag = (Enemy.WorldPivot.Position - Target).Magnitude
+        if Mag < dist then
+          dist, near = Mag, Enemy
+        end
+      end
+    end
+    for _,Enemy in next, ReplicatedStorage:GetChildren() do
+      if Enemy.Name == Name and self.IsAlive(Enemy) then
+        local Mag = (Enemy.WorldPivot.Position - Target).Magnitude
+        if Mag < dist then
+          dist, near = Mag, Enemy
+        end
+      end
+    end
+    
+    if near then
+      self.newCachedEnemy(Name, near)
+    end
+    
+    return near
+  end
+  
+  function Module:GetAliveEnemy(Name, Closest)
+    local CachedEnemy = CachedEnemies[Name]
+    if CachedEnemy and self.IsAlive(CachedEnemy) then
+      return CachedEnemy
+    end
+    
+    if Closest then
+      return self:GetClosestEnemy(Name)
     end
     
     for _,Enemy in next, Enemies:GetChildren() do
@@ -188,10 +226,15 @@ local Module = {} do
   
   function Module:BringEnemies(ToEnemy)
     if Settings.BringMobs and self.IsAlive(ToEnemy) then
-      local Target = ToEnemy:GetPivot()
+      if not CachedBring[ToEnemy] then
+        CachedBring[ToEnemy] = ToEnemy:GetPivot()
+      end
+      
+      local Target = CachedBring[ToEnemy]
+      
       for _,Enemy in ipairs(Enemies:GetChildren()) do
         if Enemy.Name == ToEnemy.Name and self.IsAlive(Enemy) and Enemy.PrimaryPart then
-          if Enemy ~= ToEnemy and (Enemy.PrimaryPart.Position - Target.p).Magnitude < Settings.BringDistance then
+          if Enemy == ToEnemy or (Enemy.PrimaryPart.Position - Target.Position).Magnitude < Settings.BringDistance then
             Enemy:PivotTo(Target)
           end
           self.HitBox(Enemy)
@@ -205,7 +248,7 @@ local Module = {} do
   
   Module.EnemySpawned = setmetatable({}, {
     __index = function(self, index)
-      local Enemy = Module:GetAliveEnemy(index)
+      local Enemy = Module:GetAliveEnemy(index, true)
       if Enemy then
         rawset(self, index, Enemy)
         Enemy.Humanoid.Died:Once(function() rawset(self, index, nil) end)
@@ -269,7 +312,7 @@ local Module = {} do
       for _,Enemy in ipairs(Enemies:GetChildren()) do
         if not self[Enemy] then
           local PP = Enemy.PrimaryPart
-          if PP and Module:IsAlive(Enemy) and Player:DistanceFromCharacter(PP.Position) < Distance then
+          if PP and Module.IsAlive(Enemy) and Player:DistanceFromCharacter(PP.Position) < Distance then
             PP.CanCollide = false
             PP.Size = Vector3_new(60, 60, 60)
             Humanoid:ChangeState(15)
@@ -328,7 +371,7 @@ local Module = {} do
     local Fruits = Module.SpawnedFruits
     
     workspace.ChildAdded:Connect(function(Part)
-      if Module:IsFruit(Part) then
+      if Module.IsFruit(Part) then
         table.insert(Fruits, Part)
         Part:GetPropertyChangedSignal("Parent"):Once(function()
           table.remove(Fruits, table.find(Fruits, Part))
@@ -337,7 +380,7 @@ local Module = {} do
     end)
     
     for _,Part in next, workspace:GetChildren() do
-      if Module:IsFruit(Part) then
+      if Module.IsFruit(Part) then
         table.insert(Fruits, Part)
         Part:GetPropertyChangedSignal("Parent"):Once(function()
           table.remove(Fruits, table.find(Fruits, Part))
@@ -432,7 +475,7 @@ local Module = {} do
       end
       
       local Char = Player.Character
-      if _ENV.OnFarm and Module:IsAlive(Char) then
+      if _ENV.OnFarm and Module.IsAlive(Char) then
         local plrPP = Char.PrimaryPart
         if plrPP then
           if (plrPP.Position - block.Position).Magnitude < 150 then
