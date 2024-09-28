@@ -11,7 +11,11 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local Validator = Remotes:WaitForChild("Validator")
 local CommF = Remotes:WaitForChild("CommF_")
 
+local WorldOrigin = workspace:WaitForChild("_WorldOrigin")
 local Enemies = workspace:WaitForChild("Enemies")
+
+local EnemySpawns = WorldOrigin:WaitForChild("EnemySpawns")
+local Locations = WorldOrigin:WaitForChild("Locations")
 
 local RenderStepped = RunService.RenderStepped
 local Heartbeat = RunService.Heartbeat
