@@ -254,6 +254,46 @@ local Module = {} do
     end
   end
   
+  function Module:GetRaidIsland()
+    if self.RaidIsland then
+      return self.RaidIsland
+    end
+    
+    local list = {}
+    
+    for _,Island in ipairs(Locations:GetChildren()) do
+      if Island:IsA("BasePart") and Player:DistanceFromCharacter(Island.Position) < 3000 then
+        list[Island.Name] = Island
+      end
+    end
+    
+    local Island = list["Island 5"] or list["Island 4"] or list["Island 3"] or list["Island 2"] or list["Island 1"]
+    
+    self.RaidIsland = Island
+    return Island
+  end
+  
+  Module.Progress = setmetatable({}, {
+    __call = function(self, index, ...)
+      local entry = rawget(self, index)
+      local currentTime = tick()
+      
+      if entry then
+        if (currentTime - entry.time) >= 1 then
+          entry.Progress = Module.FireRemote(...)
+          entry.time = currentTime
+        end
+      else
+        entry = {
+          Progress = Module.FireRemote(...),
+          time = currentTime
+        }
+        rawset(self, index, entry)
+      end
+      return entry.Progress
+    end
+  })
+  
   Module.EnemySpawned = setmetatable({}, {
     __index = function(self, index)
       local Enemy = Module:GetAliveEnemy(index, true)
@@ -334,9 +374,9 @@ local Module = {} do
   })
   
   Module.EquipTool = setmetatable({}, {
-    __call = function(self, Name)
+    __call = function(self, Name, byTip)
       local Char = Player.Character
-      if Char then
+      if Module.IsAlive(Char) then
         if self.Equipped and self.Equipped.Name == Name then
           if self.Equipped.Parent ~= Char then
             Char:WaitForChild("Humanoid"):EquipTool(self.Equipped)
@@ -344,19 +384,21 @@ local Module = {} do
           return nil
         end
         
-        if Name then
+        if Name and not byTip then
           local Tool = Player.Backpack:FindFirstChild(Name)
           if Tool then
             self.Equipped = Tool
             Char:WaitForChild("Humanoid"):EquipTool(Tool)
           end
-        else
-          local Tip = Settings.FarmTool
-          for _,Tool in Player.Backpack:GetChildren() do
-            if Tool:IsA("Tool") and Tool.ToolTip == Tip then
-              self.Equipped = Tool
-              Char:WaitForChild("Humanoid"):EquipTool(Tool)
-            end
+          return nil
+        end
+        
+        local ToolTip = (byTip and Name) or Settings.FarmTool
+        for _,Tool in Player.Backpack:GetChildren() do
+          if Tool:IsA("Tool") and Tool.ToolTip == ToolTip then
+            self.Equipped = Tool
+            Char:WaitForChild("Humanoid"):EquipTool(Tool)
+            break
           end
         end
       end
@@ -398,10 +440,15 @@ local Module = {} do
   end)
   
   task.spawn(function()
-    local EnemySpawns = WaitChilds(workspace, "_WorldOrigin", "EnemySpawns")
-    local locations = Module.EnemyLocations
+    local EnemyLocations = Module.EnemyLocations
     
-    table.foreach(EnemySpawns:GetChildren(), function(_,...) locations(...) end)
+    table.foreach(EnemySpawns:GetChildren(), function(_,...) EnemyLocations(...) end)
+    
+    Locations.ChildAdded:Connect(function(part)
+      if string.find(part.Name, "Island") then
+        Module.RaidIsland = nil
+      end
+    end)
   end)
   
   task.spawn(function()
@@ -504,5 +551,15 @@ local Module = {} do
     
     _ENV.TweenBlock = block
     return block
+  end)()
+  
+  Module.RaidList = (function()
+    local Raids = require(WaitChilds(ReplicatedStorage, "Raids")
+    local list = {}
+    
+    for _,chip in ipairs(Raids.advancedRaids) do table.insert(list, chip) end
+    for _,chip in ipairs(Raids.raids) do table.insert(list, chip) end
+    
+    return list
   end)()
 end
