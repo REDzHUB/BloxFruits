@@ -558,7 +558,7 @@ local Module = {} do
   end)()
   
   Module.RaidList = (function()
-    local Raids = require(WaitChilds(ReplicatedStorage, "Raids")
+    local Raids = require(WaitChilds(ReplicatedStorage, "Raids"))
     local list = {}
     
     for _,chip in ipairs(Raids.advancedRaids) do table.insert(list, chip) end
