@@ -429,16 +429,18 @@ local Module = {} do
   function Module:ServerHop(Region, MaxPlayers)
     MaxPlayers = MaxPlayers or self.SH_MaxPlrs or 8
     Region = Region or self.SH_Region or "Singapore"
+    
+    local ServerBrowser = ReplicatedStorage.__ServerBrowser
+    
+    pcall(function()
+      Player.PlayerGui.ServerBrowser.Frame.Filters.SearchRegion.TextBox.Text = Region
+    end)
+    
     for i = 1, 100 do
-      pcall(function()
-        Player.PlayerGui.ServerBrowser.Frame.Filters.SearchRegion.TextBox.Text = Region
-      end)
-      local Servers = ReplicatedStorage.__ServerBrowser:InvokeServer(i)
+      local Servers = ServerBrowser:InvokeServer(i)
       for id,info in pairs(Servers) do
         if id ~= game.JobId and info["Count"] <= MaxPlayers then
-          task.spawn(function()
-            ReplicatedStorage.__ServerBrowser:InvokeServer("teleport", id)
-          end)
+          task.spawn(ServerBrowser.InvokeServer, ServerBrowser, "teleport", id)
         end
       end
     end
@@ -816,6 +818,7 @@ local Module = {} do
   
   task.spawn(function()
     local Inventory = WaitChilds(Player, "PlayerGui", "Main", "UIController", "Inventory")
+    
     local ItemList = getupvalue(require(Inventory).UpdateSort, 2)
     
     function Module:GetMaterial(index)
@@ -854,22 +857,6 @@ local Module = {} do
     if hookfunction then
       hookfunction(DeathM, function(...) return ... end)
     end
-  end)
-  
-  task.spawn(function()
-    if _ENV.rz_BypassSpeed then
-      return nil
-    end
-    
-    _ENV.rz_BypassSpeed = true
-    
-    local old;
-    old = hookmetamethod(Player, "__newindex", function(self, index, Value)
-      if index == "WalkSpeed" and self.Name == "Humanoid" then
-        return old(self, index, _ENV.WalkSpeedBypass or Value)
-      end
-      return old(self, index, Value)
-    end)
   end)
   
   Module.FastAttack = (function()
