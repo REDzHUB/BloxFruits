@@ -47,6 +47,7 @@ end
 
 local Module = {} do
   local CachedBaseParts = {}
+  local ChachedToolTip = {}
   local CachedEnemies = {}
   local CachedBring = {}
   local CachedChars = {}
@@ -369,6 +370,33 @@ local Module = {} do
     return false
   end
   
+  function VerifyToolTip(Type)
+    local cached = ChachedToolTip[Type]
+    if cached and cached.Parent then
+      return cached
+    end
+    
+    for _,tool in Player.Backpack:GetChildren() do
+      if tool:IsA("Tool") and tool.ToolTip == Type then
+        ChachedToolTip[Type] = tool
+        return tool
+      end
+    end
+    
+    if not Module.IsAlive(Player.Character) then
+      return nil
+    end
+    
+    for _,tool in Player.Character:GetChildren() do
+      if tool:IsA("Tool") and tool.ToolTip == Type then
+        ChachedToolTip[Type] = tool
+        return tool
+      end
+    end
+    
+    return nil
+  end
+  
   local function GetBaseParts(Char)
     if CachedBaseParts[Char] then
       return CachedBaseParts[Char]
@@ -551,7 +579,7 @@ local Module = {} do
           self.HitBox(Enemy)
         end
       end
-      pcall(sethiddenproperty, Player, "SimulationRadius",  m_huge)
+      pcall(sethiddenproperty, Player, "SimulationRadius", math.huge)
     elseif self.IsAlive(ToEnemy) then
       self.HitBox(ToEnemy)
     end
@@ -720,12 +748,12 @@ local Module = {} do
     end
   })
   
-  Module.HitBox = setmetatable({}, {
+  Module.HitBox = setmetatable({ hSize = Vector3.new(50, 50, 50) }, {
     __call = function(self, Enemy)
-      if not self[Enemy] then
-        rawset(self, Enemy, true)
-        Enemy.PrimaryPart.CanCollide = false
-        Enemy.PrimaryPart.Size = Vector3.new(50, 50, 50)
+      local PP = Enemy.PrimaryPart
+      if PP and (PP.CanCollide or PP.Size ~= self.hSize) then
+        PP.CanCollide = false
+        PP.Size = self.hSize
         Enemy.Humanoid.WalkSpeed = 0
         Enemy.Humanoid:ChangeState(14)
       end
@@ -827,7 +855,7 @@ local Module = {} do
     
     Module.Inventory = setmetatable({ void = { details = {} } }, {
       __index = function(self, index)
-        for _,item in ipairs(ItemList) do
+        for _,item in ItemList do
           if item.details.Name == index then
             return item
           end
@@ -838,7 +866,7 @@ local Module = {} do
     
     Module.Unlocked = setmetatable({}, {
       __index = function(self, index)
-        for _,item in ipairs(ItemList) do
+        for _,item in ItemList do
           if item.details.Name == index then
             rawset(self, index, true)
             return true
