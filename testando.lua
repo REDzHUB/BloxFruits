@@ -397,6 +397,13 @@ local Module = {} do
     return nil
   end
   
+  function noSit()
+    local Char = Player.Character
+    if Module.IsAlive(Char) and Char.Humanoid.Sit then
+      Player.Character.Humanoid.Sit = false
+    end
+  end
+  
   local function GetBaseParts(Char)
     if CachedBaseParts[Char] then
       return CachedBaseParts[Char]
@@ -527,7 +534,7 @@ local Module = {} do
         for _,Enemy1 in Enemies:GetChildren() do
           if Enemy1.Name == Name and self.IsAlive(Enemy1) then
             self.newCachedEnemy(Name, Enemy1)
-            return
+            return Enemy1
           end
         end
       elseif self.IsAlive(Enemy) then
