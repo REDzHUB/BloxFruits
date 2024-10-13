@@ -857,17 +857,25 @@ local Module = {} do
     local ItemList = getupvalue(require(Inventory).UpdateSort, 2)
     
     function Module:GetMaterial(index)
-      return self.Inventory[index].details.Count or 0
+      local Material = self.Inventory[index]
+      return (Material and Material.details.Count) or 0
     end
     
-    Module.Inventory = setmetatable({ void = { details = {} } }, {
+    function Module:ItemMastery(index)
+      local Item = self.Inventory[index]
+      return (Item and Item.details.Mastery) or 0
+    end
+    
+    Module.Inventory = setmetatable({}, {
       __index = function(self, index)
         for _,item in ItemList do
           if item.details.Name == index then
+            rawset(self, index, item)
+            task.delay(1, rawset, index, nil)
             return item
           end
         end
-        return self.void
+        return nil
       end
     })
     
@@ -879,6 +887,9 @@ local Module = {} do
             return true
           end
         end
+        
+        rawset(self, index, false)
+        task.delay(1, rawset, index, nil)
         return false
       end
     })
