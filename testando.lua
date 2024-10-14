@@ -672,6 +672,24 @@ local Module = {} do
     end
   })
   
+  Module.IsSpawned = setmetatable({}, {
+    __call = function(self, Enemy)
+      local Cached = rawget(self, Enemy)
+      
+      if Cached then
+        return Cached:GetAttribute("Active")
+          or Module.IsAlive(Enemies:FindFirstChild(Enemy) or ReplicatedStorage:FindFirstChild(Enemy))
+      end
+      
+      for _,Spawn in ipairs(EnemySpawns:GetChildren()) do
+        if GetEnemyName(Spawn.Name) == Enemy and Spawn:GetAttribute("Active") then
+          rawset(self, Enemy, Spawn)
+          return true
+        end
+      end
+    end
+  })
+  
   Module.FruitsName = setmetatable({}, {
     __index = function(self, Fruit)
       local Ids = Module.FruitsId
